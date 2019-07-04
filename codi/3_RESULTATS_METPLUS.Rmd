@@ -1,0 +1,95 @@
+---
+title: 'eControl Met +: Study about the results of the addition of a sulfonylurea, DPP4 inhibitors or SGLT2 inhibitors as a second antidiabetic drug in patients with diabetes mellitus type 2 in treatment with metformin and insufficient glycemic control'
+author: "Jordi Real"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+
+rm(list=ls())
+memory.size(max=160000)
+
+output_Rdata<-here::here("resultats","Output_metplus.RData")
+
+
+# Càrrega de libreries 
+library(compareGroups)
+
+
+# Carrega d'objectes
+
+load(output_Rdata)
+
+
+```
+
+## Study Objectives and Endpoints:
+
+# The primary objective:
+
+To compare the proportion of patients achieving the reduction in HbA1c values of at least 0.5%, a weight reduction of at least 3%, after the addition of a SU, an DPP-4i or an SGLT-2i to the treatment with metformin in patients with T2DM and insufficient glycemic control in the medium-long term, up to a maximum of 24 months of follow-up. 
+
+***
+
+# Secondary objectives: 
+
+- To estimate the mean reduction of HbA1c and body weight separately after the addition of an SU, a DPP-4i or an SGLT-2i in patients with DM2 treated with metformin and insufficient glycemic control (up to 24 months).
+- To assess the average reduction in systolic blood pressure after the addition of an SU, a DPP-4i or an SGLT-2i in patients with DM2 treated with metformin and insufficient glycemic control.
+- To assess the evolution of lipid profile (mean total cholesterol, HDL, LDL, and triglycerides) after the addition of an SU, a DPP-4i or an SGLT-2i in patients with DM2 treated with metformin and insufficient control glycemic. 
+- To assess  the adherence to treatment after the addition of an SU, a DPP-4i or an SGLT-2i in patients with DM2 treated with metformin and insufficient glycemic control.
+- To assess  the percentage of suspensions/dropouts of treatment at 6, 12 and 24 months (persistence of treatment).
+- To describe the relevant adverse reactions produced after the addition of an SU, an DPP-4i or an SGLT-2i in patients with DM2 treated with metformin and insufficient glycemic control.
+- To describe the comorbidity profile and baseline clinical characteristics of patients with DM2 and insufficient control with metformin in monotherapy after addition of a treatment with SU, DPP-4i or SGLT-2i.
+- the reductions will be evaluated up to 12 months and a maximum of 24 months after the addition of the treatment or end of follow-up.
+
+***
+
+# Flow chart    
+
+```{r, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
+
+
+flow_global
+
+flow_global2
+
+
+```
+
+# Pre-post descriptive analysis 
+
+```{r, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
+
+export2md(taula1, caption = "Table 1: Sociodemographic variables pre matching (N=87578)")
+
+export2md(taulaPS, caption = "Table 1: Sociodemographic variables post matching (N=7325)")
+
+
+```
+
+# Descriptive analysis
+
+```{r, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
+
+
+
+export2md(taules[[1]], caption = "Table 1: Sociodemographic variables")
+
+export2md(taules[[2]], caption = "Table 2: Baseline comorbidity variables")
+
+export2md(taules[[3]], caption = "Clinical variables related to T2DM")
+
+export2md(taules[[4]], caption = "Variables related to treatment efficacy")
+
+
+```
+
+
+
