@@ -48,13 +48,13 @@ devtools::source_url(link_source)
 # N test mostra a seleccionar  (Nmostra=Inf)
 
 # Nmostra=Inf  # Seria tota la mostra
-Nmostra=100000
+Nmostra=Inf
 
 # Conductor cataleg 
 fitxer_cataleg<-"cataleg_met.xls"
 
 # fitxersortida
-fitxersortida<-here::here("dades/preparades","BD_METPLUS_V3.rds")
+fitxersortida<-here::here("dades/preparades","BD_METPLUS_V4.rds")
 
 # 1. Lectura de Fitxers  --------------------------
 
@@ -188,6 +188,7 @@ gc()
 # Agregar per agafar primera facturació / dispensació per grup
 farmacs_grups<-agregar_facturacio(dt=FX.FACTURATS_PRESCRITS,
                                   finestra.dies = c(-Inf,+Inf),camp_agregador="GRUP",dt.agregadors = conductor_variables,bd.dindex = "20171231",prefix="FD.",agregar_data=T)
+
 
 # Genero data index per farmac  
 # 2.5. Assigno a grup aquella data mínima de cada farmac ---------------

@@ -47,12 +47,12 @@ devtools::source_url(link_source)
 Nmostra=Inf
 
 # Conductor cataleg 
-fitxer_cataleg<-here::here("dades","cataleg_met.xls")
+fitxer_cataleg<-"cataleg_met.xls"
 
 # Conductor variables
-conductor_variables<-here::here("dades","variables_metplus.xls")
+conductor_variables<-"variables_metplus.xls"
 # fitxersortida
-fitxer_entrada<-here::here("dades/preparades","BD_METPLUS_v2.rds")
+fitxer_entrada<-here::here("dades/preparades","BD_METPLUS_v4.rds")
 
 # Obrir dades 
 dades<-readRDS(fitxer_entrada)  
@@ -108,6 +108,9 @@ dades<-recodificar(dades,taulavariables = conductor_variables,criteris = "recode
 dades<-dades %>% mutate (inclusio_edat18=ifelse(edat>=18,1,0))
 
 
+# Inclusió 4: Pes not missing ----------
+dades<-dades %>% mutate (inclusio_pes=ifelse(!is.na(PESO.valor),1,0))
+
 # Diagnostics basals (Recode)
 # NA --> 0 (Else=1) (No hi ha 0)
 dades<-dades %>% mutate_at(vars(starts_with("DG.")), 
@@ -119,7 +122,7 @@ dades<-dades %>% mutate_at(vars(starts_with("DG.")),
 # Faig copia per despres fer flow-chart amb totes les dades 
 dadesinicials<-dades
 
-dades<-dades %>% filter(inclusio_met==1 & inclusio_HB7==1 & inclusio_edat18==1)
+dades<-dades %>% filter(inclusio_met==1 & inclusio_HB7==1 & inclusio_edat18==1 & inclusio_pes==1)
 
 
 # Recodificar edat
@@ -128,8 +131,8 @@ dades<-recodificar(dades,taulavariables = conductor_variables,criteris = "recode
 
 # Falta generació de quartils Pes
 dades<-dades %>% 
-  mutate(PES.CAT.Q4=Hmisc::cut2(PESO.valor,g=4),
-         PES.CAT.Q4=ifelse(is.na(PES.CAT.Q4),"NA",PES.CAT.Q4))
+  mutate(PES.CAT.Q4=Hmisc::cut2(PESO.valor,g=4))
+
 
 # Matching per 3 grups  IDPP4,ISGLT2 ,SU  --------------------------
 
@@ -212,11 +215,10 @@ dadesinicials<-dadesinicials %>%  left_join(select(dadesmatching,c(idp,ps)),by="
 
 
 # Fi matching 
-
 rm(dades_sub1,dadesmatching,taula2)
 
 
-# Generar flowcharts des dadesinicials --------------
+# Generar flowcharts desde dadesinicials --------------
 
 flow_global<-criteris_exclusio_diagrama(dadesinicials,taulavariables = conductor_variables,criteris = "exclusio",
                                         etiquetes="exc_lab",pob_lab = c("Population","N Final"),grups="grup",ordre = "exc_ordre")
@@ -250,9 +252,16 @@ dades<-etiquetar_valors(dades,variables_factors = conductor_variables,fulla="val
 # Taules descriptives exploratories  ----------------
 taules<-llistadetaules.compare(tablero=c("table1","table2","table3","table4"),y="grup",variables = conductor_variables,dt=dades)
 
+
 formula<-formula_compare(x="table1",y="grup",taulavariables = conductor_variables)
 taula1.post<-descrTable(formula,data=dades,show.p.overall = F)
 
+
+# Taula events -----------
+# Falta recodificar esdeveniments a EV. to Surv
+formula<-formula_compare(x="table5",y="grup",taulavariables = conductor_variables)
+taula_events<-descrTable(formula,data=dades,show.p.overall = T)
+taula_events
 
 # Salvar objectes 
 
