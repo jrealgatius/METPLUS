@@ -67,9 +67,10 @@ flow_global2
 
 ```{r, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
 
-export2md(taula1, caption = "Table 1: Sociodemographic variables pre matching (N=87578)")
+export2md(taula1, caption = "Table 1: Sociodemographic variables pre matching (N=65312)")
 
-export2md(taulaPS, caption = "Table 1: Sociodemographic variables post matching (N=7325)")
+export2md(taulaPS, caption = "Table 1: Sociodemographic variables post matching (N=5897)")
+
 
 
 ```
@@ -86,10 +87,27 @@ export2md(taules[[2]], caption = "Table 2: Baseline comorbidity variables")
 
 export2md(taules[[3]], caption = "Clinical variables related to T2DM")
 
+export2md(taula_events, caption = "Table 5: Variables related to safety")
+
+
+```
+
+# Primary objective
+
+To compare the proportion of patients achieving the reduction in HbA1c values of at least 0.5%, a weight reduction of at least 3%, after the addition of a SU, an DPP-4i or an SGLT-2i to the treatment with metformin in patients with T2DM and insufficient glycemic control in the medium-long term, up to a maximum of 24 months of follow-up. 
+
+# Secondary objectives
+To estimate the mean reduction of HbA1c and body weight separately after the addition of an SU, a DPP-4i or an SGLT-2i in patients with DM2 treated with metformin and insufficient glycemic control (up to 24 months).
+
+
+```{r, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
+
 export2md(taules[[4]], caption = "Variables related to treatment efficacy")
 
 
 ```
+
+
 
 
 
