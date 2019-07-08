@@ -1,61 +1,61 @@
 #      FASE: Preparació      ---------------------
 #
 #
-# 0. Directori de treball / càrrega de funcions    --------------
-#
-# Lectura de dades     
-
-memory.size(max=160685)
-#
-#   SOURCE
-
-rm(list=ls())
-
-
-link_source<-paste0("https://github.com/jrealgatius/Stat_codis/blob/master/funcions_propies.R","?raw=T")
-devtools::source_url(link_source)
-
-
-# 
-# ###
-# directori.arrel<-c("C:/Users/Jordi/Google Drive", 
-#                    "C:/Users/usuari/Google Drive",
-#                    "C:/Users/43728088M/Google Drive",
-#                    "C:/Users/jreal/Google Drive",
-#                    "D:/Google Drive",
-#                    "G:/Google Drive",
-#                    "E:/Google Drive")
-# 
-# ##  OJO! NO SOURCE ANTIC
-# 
-# library(dplyr)
-# directori.arrel[file.exists(directori.arrel)] %>% 
-#   file.path("Stat_codis/funcions_propies.R") %>% 
-#   source()
-
-#  DIRECTORI DE TREBALL              #
-#  setwd en directori de treball 
-
-# "CIBERDEM/GEDAPS/METPLUS/SIDIAP" %>% 
-#   directori_treball(directori.arrel)
-
-# 0. Inicialització de parametres           -----------------------------
-
-# N test mostra a seleccionar  (Nmostra=Inf)
-
-# Nmostra=Inf  # Seria tota la mostra
-Nmostra=Inf
-
-# Conductor cataleg 
-fitxer_cataleg<-"cataleg_met.xls"
-
-# Conductor variables
-conductor_variables<-"variables_metplus.xls"
-# fitxersortida
-fitxer_entrada<-here::here("dades/preparades","BD_METPLUS_v4.rds")
-
-# Obrir dades 
-dades<-readRDS(fitxer_entrada)  
+  # 0. Directori de treball / càrrega de funcions    --------------
+  #
+  # Lectura de dades     
+  
+  memory.size(max=160685)
+  #
+  #   SOURCE
+  
+  rm(list=ls())
+  
+  
+  link_source<-paste0("https://github.com/jrealgatius/Stat_codis/blob/master/funcions_propies.R","?raw=T")
+  devtools::source_url(link_source)
+  
+  
+  # 
+  # ###
+  # directori.arrel<-c("C:/Users/Jordi/Google Drive", 
+  #                    "C:/Users/usuari/Google Drive",
+  #                    "C:/Users/43728088M/Google Drive",
+  #                    "C:/Users/jreal/Google Drive",
+  #                    "D:/Google Drive",
+  #                    "G:/Google Drive",
+  #                    "E:/Google Drive")
+  # 
+  # ##  OJO! NO SOURCE ANTIC
+  # 
+  # library(dplyr)
+  # directori.arrel[file.exists(directori.arrel)] %>% 
+  #   file.path("Stat_codis/funcions_propies.R") %>% 
+  #   source()
+  
+  #  DIRECTORI DE TREBALL              #
+  #  setwd en directori de treball 
+  
+  # "CIBERDEM/GEDAPS/METPLUS/SIDIAP" %>% 
+  #   directori_treball(directori.arrel)
+  
+  # 0. Inicialització de parametres           -----------------------------
+  
+  # N test mostra a seleccionar  (Nmostra=Inf)
+  
+  # Nmostra=Inf  # Seria tota la mostra
+  Nmostra=Inf
+  
+  # Conductor cataleg 
+  fitxer_cataleg<-"cataleg_met.xls"
+  
+  # Conductor variables
+  conductor_variables<-"variables_metplus.xls"
+  # fitxersortida
+  fitxer_entrada<-here::here("dades/preparades","BD_METPLUS_v4.rds")
+  
+  # Obrir dades 
+  dades<-readRDS(fitxer_entrada)  
 
 
 # 1. Calculs i recodes de variables   ----------------------
@@ -102,6 +102,8 @@ dades<-dades %>% mutate(inclusio_HB7=case_when(HBA1C.valor>=7~"1",
                                     HBA1C.valor<7~"0",TRUE~"NA"))
 
 dades<-recodificar(dades,taulavariables = conductor_variables,criteris = "recode")
+
+
 
 # Inclusió 3: Edad>18 anys ---------------
 
@@ -238,14 +240,73 @@ flow_global2
 dades<-dades %>% filter(ps==1)
 
 
+
+# Calcular outcomes: (Reducció de HbA1c i Reducció de PES)  ---------------------
+
+# HBA1C.valor12m HBA1C.valor324m HBA1C.valor24m
+
+dades<-dades %>% mutate (
+  HBA1C.dif324m=HBA1C.valor-HBA1C.valor324m,
+  HBA1C.dif324m.cat=if_else(HBA1C.dif324m>0.5,1,0),                
+  PESO.dif324m=PESO.valor-PESO.valor324m,
+  PESO.dif324m.cat=if_else(PESO.dif324m/PESO.valor>0.03,1,0)) 
+
+# Calcular events coma Surv: ---------------
+
+
+# Funció generar_Surv Generar columna Surv a partir de dades, event ("20150531"), dtindex, sortida(20171231), 
+generar_Surv<-function(dt,event){
+# dt<-dades
+# event<-"EV.AMPU"
+  x<-sym(event)
+  
+  temp<-dt %>% select(dtindex,!!x,sortida) %>% 
+  mutate(
+    event=case_when(as.Date(as.character(!!x),"%Y%m%d")>0~1,
+                  is.na(!!x)~0),
+    data_final=case_when(as.Date(as.character(!!x),"%Y%m%d")>0~as.Date(as.character(!!x),"%Y%m%d"),
+                       is.na(!!x)~as.Date(as.character(sortida),"%Y%m%d"))
+    ) %>% 
+  mutate(temps=(data_final-dtindex) %>% as.numeric())
+  
+# Genero l'objecte Surv
+  temp$event_surv<-Surv(temp$temps,temp$event)
+
+# Selecciono i renombro
+  nom_surv=paste0(event,".surv")
+  temp<-temp %>% select(event_surv) 
+  colnames(temp)=nom_surv
+# Fusiono objecte Surv generat a dt 
+  dt<-dt %>% cbind(temp)
+}
+
+
+# Map no funciona ja que genera llistes 
+# map(c("EV.AMPU","EV.CETO"),~generar_Surv(dt=dades,.x))
+# walk(c("EV.AMPU","EV.CETO","EV.FRAC"),~generar_Surv(dt=dades,.x))
+
+
+dades<-generar_Surv(dades,"EV.AMPU")
+dades<-generar_Surv(dades,"EV.CETO")
+dades<-generar_Surv(dades,"EV.FRAC")
+dades<-generar_Surv(dades,"EV.GI")
+dades<-generar_Surv(dades,"EV.HIPO")
+dades<-generar_Surv(dades,"EV.NEOGAST")
+dades<-generar_Surv(dades,"EV.RAD")
+dades<-generar_Surv(dades,"EV.RAH")
+dades<-generar_Surv(dades,"EV.RAHEM")
+dades<-generar_Surv(dades,"EV.RAR")
+dades<-generar_Surv(dades,"EV.RAU")
+
+
 # FActoritzar -------------
 
 dades<-factoritzar.NO.YES(dades,columna = "factoritzar.yes.no",taulavariables = conductor_variables)
 
+
 # Labels  -------------
 
 dades<-etiquetar(dades,taulavariables = conductor_variables,camp_descripcio = "Descripcio")
-
 dades<-etiquetar_valors(dades,variables_factors = conductor_variables,fulla="value_labels",camp_etiqueta = "etiqueta")
 
 
@@ -258,16 +319,14 @@ taula1.post<-descrTable(formula,data=dades,show.p.overall = F)
 
 
 # Taula events -----------
-# Falta recodificar esdeveniments a EV. to Surv
 formula<-formula_compare(x="table5",y="grup",taulavariables = conductor_variables)
-taula_events<-descrTable(formula,data=dades,show.p.overall = T)
-taula_events
+taula_events<-descrTable(formula,data=dades, show.ratio = T)
+
 
 # Salvar objectes 
-
 output_Rdata<-here::here("resultats","Output_metplus.RData")
 
-save(flow_global,flow_global2,taula1,taulaPS,taula1.post,taules,file=output_Rdata)
+save(flow_global,flow_global2,taula1,taulaPS,taula1.post,taules,taula_events,file=output_Rdata)
 
 
 
