@@ -1,7 +1,7 @@
-#      FASE: Preparació      ---------------------
+#  FASE: Preparació      ---------------------
 #
 #
-  # 0. Directori de treball / càrrega de funcions    --------------
+# 0. Directori de treball / càrrega de funcions    --------------
   #
   # Lectura de dades     
   
@@ -39,7 +39,7 @@
   # "CIBERDEM/GEDAPS/METPLUS/SIDIAP" %>% 
   #   directori_treball(directori.arrel)
   
-  # 0. Inicialització de parametres           -----------------------------
+# 0. Inicialització de parametres           -----------------------------
   
   # N test mostra a seleccionar  (Nmostra=Inf)
   
@@ -62,41 +62,41 @@
 
 library(lubridate)
 
-# dtindex ---> data --------------
+#   dtindex ---> data --------------
 
 dades<-dades %>% mutate(dtindex=as_date(dtindex))
 
-# Recode farmacs basals ---------
+#   Recode farmacs basals ---------
 
 # NA --> 0 (Else=1) (No hi ha 0)
 dades<-dades %>% mutate_at(vars(starts_with("F.")), 
                            funs(ifelse(is.na(.) | 0,0,1))) 
 
-# Anys desde diabetis ------------
+#   Anys desde diabetis ------------
 
 dades<-dades %>% 
   mutate(anys_DM = year(as.period(interval(start = ymd(DG.CI), end = dtindex))))
 
-# Edat ------------
+#   Edat ------------
 dades<-dades %>% 
   mutate(edat = year(as.period(interval(start = ymd(dnaix), end = dtindex))))
 
-# Any / quarter data index  ------------------
+#   Any / quarter data index  ------------------
 dades<- dades %>% 
   mutate (any_dtindex=year(dtindex),
           Q_dtindex=quarter(dtindex,with_year = T)) 
 
 
-# 1.1. Criteris d'inclusió  --------------
+# 2. Criteris d'inclusió  --------------
 
 # 1.1 Metformina
 
-# Inclusió 1 (METformina)  -------
+#   Inclusió 1 (METformina)  -------
 
 dades<-dades %>% mutate(inclusio_met=ifelse(F.MET | F.METF,1,0))
 
 
-# Inclusió 2 : Insuficient control glycemic (HbA1c>=7) ----------
+#   Inclusió 2 : Insuficient control glycemic (HbA1c>=7) ----------
 
 dades<-dades %>% mutate(inclusio_HB7=case_when(HBA1C.valor>=7~"1",
                                     HBA1C.valor<7~"0",TRUE~"NA"))
@@ -105,12 +105,12 @@ dades<-recodificar(dades,taulavariables = conductor_variables,criteris = "recode
 
 
 
-# Inclusió 3: Edad>18 anys ---------------
+#   Inclusió 3: Edad>18 anys ---------------
 
 dades<-dades %>% mutate (inclusio_edat18=ifelse(edat>=18,1,0))
 
 
-# Inclusió 4: Pes not missing ----------
+#   Inclusió 4: Pes not missing ----------
 dades<-dades %>% mutate (inclusio_pes=ifelse(!is.na(PESO.valor),1,0))
 
 # Diagnostics basals (Recode)
@@ -119,7 +119,7 @@ dades<-dades %>% mutate_at(vars(starts_with("DG.")),
                            funs(if_else(is.na(.),0,1))) 
 
 
-# Aplicar criteris d'inclusió  ------------------------
+# 3. Aplicar criteris d'inclusió  ------------------------
 
 # Faig copia per despres fer flow-chart amb totes les dades 
 dadesinicials<-dades
@@ -136,9 +136,9 @@ dades<-dades %>%
   mutate(PES.CAT.Q4=Hmisc::cut2(PESO.valor,g=4))
 
 
-# Matching per 3 grups  IDPP4,ISGLT2 ,SU  --------------------------
+# 4. Matching per 3 grups  IDPP4,ISGLT2 ,SU  --------------------------
 
-# Inicialització de paràmetres -----------
+#   4.1. Inicialització de paràmetres -----------
 caliper<-0.05
 set.seed(111)
 
@@ -210,7 +210,7 @@ taulaPS<-descrTable(formula,data=temp,show.all = T,show.n = T)
 taulaPS
 
 
-# Afegir PS indicadora  -------------------
+#   4.2. Afegir PS indicadora  -------------------
 dades<-dades %>%  left_join(select(dadesmatching,c(idp,ps)),by="idp")
 
 dadesinicials<-dadesinicials %>%  left_join(select(dadesmatching,c(idp,ps)),by="idp") 
@@ -220,7 +220,7 @@ dadesinicials<-dadesinicials %>%  left_join(select(dadesmatching,c(idp,ps)),by="
 rm(dades_sub1,dadesmatching,taula2)
 
 
-# Generar flowcharts desde dadesinicials --------------
+# 5. Generar flowcharts desde dadesinicials --------------
 
 flow_global<-criteris_exclusio_diagrama(dadesinicials,taulavariables = conductor_variables,criteris = "exclusio",
                                         etiquetes="exc_lab",pob_lab = c("Population","N Final"),grups="grup",ordre = "exc_ordre")
@@ -235,13 +235,12 @@ flow_global2
 
 
 
-# Ara seleccionar dades / fer descriptiva basal  -----------------------
+# 6. Ara seleccionar dades / fer descriptiva basal  -----------------------
 
 dades<-dades %>% filter(ps==1)
 
 
-
-# Calcular outcomes: (Reducció de HbA1c i Reducció de PES)  ---------------------
+# 7. Calcular outcomes: (Reducció de HbA1c i Reducció de PES)  ---------------------
 
 # HBA1C.valor12m HBA1C.valor324m HBA1C.valor24m
 
@@ -251,7 +250,7 @@ dades<-dades %>% mutate (
   PESO.dif324m=PESO.valor-PESO.valor324m,
   PESO.dif324m.cat=if_else(PESO.dif324m/PESO.valor>0.03,1,0)) 
 
-# Calcular events coma Surv: ---------------
+#   7.1. Calcular events coma Surv: ---------------
 
 
 # Funció generar_Surv Generar columna Surv a partir de dades, event ("20150531"), dtindex, sortida(20171231), 
@@ -276,14 +275,22 @@ generar_Surv<-function(dt,event){
   nom_surv=paste0(event,".surv")
   temp<-temp %>% select(event_surv) 
   colnames(temp)=nom_surv
-# Fusiono objecte Surv generat a dt 
-  dt<-dt %>% cbind(temp)
+
+  temp
 }
 
 
-# Map no funciona ja que genera llistes 
-# map(c("EV.AMPU","EV.CETO"),~generar_Surv(dt=dades,.x))
-# walk(c("EV.AMPU","EV.CETO","EV.FRAC"),~generar_Surv(dt=dades,.x))
+# Map però genera llista
+
+# Map però genera llista
+dades_surv<-map(c("EV.AMPU","EV.CETO"),~generar_Surv(dt=dades,.)) %>% 
+  as.data.frame()
+
+dades<-dades %>% cbind(dades_surv)
+
+
+extreure.variables("table4",conductor_variables)
+
 
 
 dades<-generar_Surv(dades,"EV.AMPU")
@@ -299,18 +306,18 @@ dades<-generar_Surv(dades,"EV.RAR")
 dades<-generar_Surv(dades,"EV.RAU")
 
 
-# FActoritzar -------------
+# 8. FActoritzar -------------
 
 dades<-factoritzar.NO.YES(dades,columna = "factoritzar.yes.no",taulavariables = conductor_variables)
 
 
-# Labels  -------------
+# 9. Labels  -------------
 
 dades<-etiquetar(dades,taulavariables = conductor_variables,camp_descripcio = "Descripcio")
 dades<-etiquetar_valors(dades,variables_factors = conductor_variables,fulla="value_labels",camp_etiqueta = "etiqueta")
 
 
-# Taules descriptives exploratories  ----------------
+# 10.1 Taules descriptives exploratories  ----------------
 taules<-llistadetaules.compare(tablero=c("table1","table2","table3","table4"),y="grup",variables = conductor_variables,dt=dades)
 
 
@@ -318,7 +325,7 @@ formula<-formula_compare(x="table1",y="grup",taulavariables = conductor_variable
 taula1.post<-descrTable(formula,data=dades,show.p.overall = F)
 
 
-# Taula events -----------
+# 10.2.Taula events -----------
 formula<-formula_compare(x="table5",y="grup",taulavariables = conductor_variables)
 taula_events<-descrTable(formula,data=dades, show.ratio = T)
 
