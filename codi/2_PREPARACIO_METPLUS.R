@@ -279,31 +279,15 @@ generar_Surv<-function(dt,event){
   temp
 }
 
+# Extrect llista de camps 
 
-# Map però genera llista
+llista_events<-extreure.variables("dates_events",conductor_variables)
 
-# Map però genera llista
-dades_surv<-map(c("EV.AMPU","EV.CETO"),~generar_Surv(dt=dades,.)) %>% 
+# Genera dades_surv
+dades_surv<-map(llista_events,~generar_Surv(dt=dades,.)) %>% 
   as.data.frame()
-
+# Fusiona amb dades  
 dades<-dades %>% cbind(dades_surv)
-
-
-extreure.variables("table4",conductor_variables)
-
-
-
-dades<-generar_Surv(dades,"EV.AMPU")
-dades<-generar_Surv(dades,"EV.CETO")
-dades<-generar_Surv(dades,"EV.FRAC")
-dades<-generar_Surv(dades,"EV.GI")
-dades<-generar_Surv(dades,"EV.HIPO")
-dades<-generar_Surv(dades,"EV.NEOGAST")
-dades<-generar_Surv(dades,"EV.RAD")
-dades<-generar_Surv(dades,"EV.RAH")
-dades<-generar_Surv(dades,"EV.RAHEM")
-dades<-generar_Surv(dades,"EV.RAR")
-dades<-generar_Surv(dades,"EV.RAU")
 
 
 # 8. FActoritzar -------------
@@ -315,6 +299,7 @@ dades<-factoritzar.NO.YES(dades,columna = "factoritzar.yes.no",taulavariables = 
 
 dades<-etiquetar(dades,taulavariables = conductor_variables,camp_descripcio = "Descripcio")
 dades<-etiquetar_valors(dades,variables_factors = conductor_variables,fulla="value_labels",camp_etiqueta = "etiqueta")
+dades<-etiquetar(dades,taulavariables = conductor_variables,camp_descripcio = "Descripcio")
 
 
 # 10.1 Taules descriptives exploratories  ----------------
