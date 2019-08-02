@@ -10,35 +10,56 @@ output:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
 
+knitr::opts_chunk$set(echo = TRUE)
 
 rm(list=ls())
 memory.size(max=160000)
 
+# Parametres
 output_Rdata<-here::here("resultats","Output_metplus.RData")
+conductor_variables<-here::here("variables_metplus.xls")
 
 
-# Càrrega de libreries 
+
+# Càrrega de libreries i funcions  --------------
 library(compareGroups)
 
+link_source<-paste0("https://github.com/jrealgatius/Stat_codis/blob/master/funcions_propies.R","?raw=T")
+devtools::source_url(link_source)
+  
 
 # Carrega d'objectes
-
 load(output_Rdata)
+
+```
+
+
+
+```{r generacio_taules, echo=F, include=F}
+
+# 10.1 Taules descriptives exploratories  ----------------
+taules<-llistadetaules.compare(tablero=c("table1","table2","table3","table4"),y="grup",variables = conductor_variables,dt=dades)
+
+formula<-formula_compare(x="table1",y="grup",taulavariables = conductor_variables)
+taula1.post<-descrTable(formula,data=dades,show.p.overall = F)
+
+# 10.2.Taula events -----------
+formula<-formula_compare(x="table5",y="grup",taulavariables = conductor_variables)
+taula_events<-descrTable(formula,data=dades, show.ratio = T)
 
 
 ```
 
-## Study Objectives and Endpoints:
+# Study Objectives and Endpoints:
 
-# The primary objective:
+## The primary objective:
 
 To compare the proportion of patients achieving the reduction in HbA1c values of at least 0.5%, a weight reduction of at least 3%, after the addition of a SU, an DPP-4i or an SGLT-2i to the treatment with metformin in patients with T2DM and insufficient glycemic control in the medium-long term, up to a maximum of 24 months of follow-up. 
 
 ***
 
-# Secondary objectives: 
+## Secondary objectives: 
 
 - To estimate the mean reduction of HbA1c and body weight separately after the addition of an SU, a DPP-4i or an SGLT-2i in patients with DM2 treated with metformin and insufficient glycemic control (up to 24 months).
 - To assess the average reduction in systolic blood pressure after the addition of an SU, a DPP-4i or an SGLT-2i in patients with DM2 treated with metformin and insufficient glycemic control.
@@ -47,7 +68,7 @@ To compare the proportion of patients achieving the reduction in HbA1c values of
 - To assess  the percentage of suspensions/dropouts of treatment at 6, 12 and 24 months (persistence of treatment).
 - To describe the relevant adverse reactions produced after the addition of an SU, an DPP-4i or an SGLT-2i in patients with DM2 treated with metformin and insufficient glycemic control.
 - To describe the comorbidity profile and baseline clinical characteristics of patients with DM2 and insufficient control with metformin in monotherapy after addition of a treatment with SU, DPP-4i or SGLT-2i.
-- the reductions will be evaluated up to 12 months and a maximum of 24 months after the addition of the treatment or end of follow-up.
+- To describe the clinical characteristics of patients who have the best efficacy results (patients with a reduction of HbA1c of more than 0.5% and a weight reduction of at least 3% before the end of follow-up).
 
 ***
 
@@ -79,15 +100,13 @@ export2md(taulaPS, caption = "Table 1: Sociodemographic variables post matching 
 
 ```{r, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
 
-
-
 export2md(taules[[1]], caption = "Table 1: Sociodemographic variables")
 
 export2md(taules[[2]], caption = "Table 2: Baseline comorbidity variables")
 
 export2md(taules[[3]], caption = "Clinical variables related to T2DM")
 
-export2md(taula_events, caption = "Table 5: Variables related to safety")
+
 
 
 ```
@@ -96,18 +115,191 @@ export2md(taula_events, caption = "Table 5: Variables related to safety")
 
 To compare the proportion of patients achieving the reduction in HbA1c values of at least 0.5%, a weight reduction of at least 3%, after the addition of a SU, an DPP-4i or an SGLT-2i to the treatment with metformin in patients with T2DM and insufficient glycemic control in the medium-long term, up to a maximum of 24 months of follow-up. 
 
-# Secondary objectives
-To estimate the mean reduction of HbA1c and body weight separately after the addition of an SU, a DPP-4i or an SGLT-2i in patients with DM2 treated with metformin and insufficient glycemic control (up to 24 months).
 
 
 ```{r, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
 
-export2md(taules[[4]], caption = "Variables related to treatment efficacy")
+formula<-formula_compare(x="outcomes1",y="grup",taulavariables = conductor_variables)
+
+descrTable(formula,data=dades,show.p.mul = T) %>% 
+  export2md(caption = "Variables related to treatment efficacy")
+
+
+##################  Odds Ratio HBA1C.dif324m.cat       --------
+# OR's cru
+outcome<-"HBA1C.dif324m.cat"
+
+model<-extreure_model_logistic("grup",y=outcome,taulavariables = conductor_variables,dades=dades,valor_outcome = "Yes")
+
+model$taula_OR %>% head(2) %>% 
+  kable(caption = paste0("Odds ratio reducción de HBA1C ajustados por: ",paste0(extreure.variables("grup",conductor_variables),collapse = ", "),digits = 3)) %>%   
+  kableExtra::kable_styling()
+
+# ORs ajustat
+model<-extreure_model_logistic("grup_ajustat",y=outcome,taulavariables = conductor_variables,dades=dades,valor_outcome = "Yes")
+
+model$taula_OR %>% head(2) %>% 
+  kable(caption = paste0("OR ajustados por:",paste0(extreure.variables("grup_ajustat",conductor_variables),collapse = ", ")),digits = 3) %>%   
+  kableExtra::kable_styling()
+
+
+##################  Odds Ratio  PESO.dif324m.cat      --------
+# OR's cru
+outcome<-"PESO.dif324m.cat"
+
+model<-extreure_model_logistic("grup",y=outcome,taulavariables = conductor_variables,dades=dades,valor_outcome = "Yes")
+
+model$taula_OR %>% head(2) %>% 
+  kable(caption = paste0("Odds ratio reducción de peso ajustados por: ",paste0(extreure.variables("grup",conductor_variables),collapse = ", "),digits = 3)) %>%   
+  kableExtra::kable_styling()
+
+# ORs ajustat
+model<-extreure_model_logistic("grup_ajustat",y=outcome,taulavariables = conductor_variables,dades=dades,valor_outcome = "Yes")
+
+model$taula_OR %>% head(2) %>% 
+  kable(caption = paste0("OR ajustados por:",paste0(extreure.variables("grup_ajustat",conductor_variables),collapse = ", ")),digits = 3) %>%   
+  kableExtra::kable_styling()
+
+
+##################  Odds Ratio  PESHB.dif324m.cat      --------
+# OR's cru
+outcome<-"PESHB.dif324m.cat"
+
+model<-extreure_model_logistic("grup",y=outcome,taulavariables = conductor_variables,dades=dades,valor_outcome = "Yes")
+
+model$taula_OR %>% head(2) %>% 
+  kable(caption = paste0("Odds ratio reducción de peso y HBA1C ajustados por: ",paste0(extreure.variables("grup",conductor_variables),collapse = ", "),digits = 3)) %>%   
+  kableExtra::kable_styling()
+
+# ORs ajustat
+model<-extreure_model_logistic("grup_ajustat",y=outcome,taulavariables = conductor_variables,dades=dades,valor_outcome = "Yes")
+
+model$taula_OR %>% head(2) %>% 
+  kable(caption = paste0("OR ajustados por:",paste0(extreure.variables("grup_ajustat",conductor_variables),collapse = ", ")),digits = 3) %>%   
+  kableExtra::kable_styling()
+
+
+
 
 
 ```
 
+# Secondary objectives
+
+
+- To estimate the mean reduction of HbA1c and body weight separately after the addition of an SU, a DPP-4i or an SGLT-2i in patients with DM2 treated with metformin and insufficient glycemic control (up to 24 months).
+
+
+```{r}
+
+
+# Outcomes continus 
+
+# Diferencies crues
+model<-extreure_coef_glm(dt=dades,outcomes = "outcomes_continus",x="grup",z="",taulavariables = conductor_variables)
+
+model$coef %>% kable(caption=paste0("Betas",model$caption),digits=3) %>% 
+  kableExtra::kable_styling()
+
+# Diferencies ajustades
+model<-extreure_coef_glm(dt=dades,outcomes = "outcomes_continus",x="grup",z="v.ajust",taulavariables = conductor_variables)
+
+model$coef %>% kable(caption=paste0("Betas",model$caption),digits=3) %>% 
+  kableExtra::kable_styling()
+
+
+```
+
+- To assess the average reduction in systolic blood pressure after the addition of an SU, a DPP-4i or an SGLT-2i in patients with DM2 treated with metformin and insufficient glycemic control.
+
+
+```{r}
+formula<-formula_compare("table6",y="grup",taulavariables = conductor_variables)
+descrTable(formula,dades)
+
+
+# Diferencies crues
+model<-extreure_coef_glm(dt=dades,outcomes = "table6",x="grup",z="",taulavariables = conductor_variables)
+
+model$coef %>% kable(caption=paste0("Betas",model$caption),digits=3) %>% 
+  kableExtra::kable_styling()
+
+# Diferencies ajustades
+model<-extreure_coef_glm(dt=dades,outcomes = "table6",x="grup",z="v.ajust",taulavariables = conductor_variables)
+model$coef %>% kable(caption=paste0("Betas",model$caption),digits=3) %>% 
+  kableExtra::kable_styling()
+
+
+```
+
+- To assess the evolution of lipid profile (mean total cholesterol, HDL, LDL, and triglycerides) after the addition of an SU, a DPP-4i or an SGLT-2i in patients with DM2 treated with metformin and insufficient control glycemic. 
+
+
+```{r}
+
+formula<-formula_compare("table7",y="grup",taulavariables = conductor_variables)
+descrTable(formula,dades)
+
+
+# Diferencies crues
+model<-extreure_coef_glm(dt=dades,outcomes = "table7",x="grup",z="",taulavariables = conductor_variables)
+
+model$coef %>% kable(caption=paste0("Betas",model$caption),digits=3) %>% 
+  kableExtra::kable_styling()
+
+# Diferencies ajustades
+model<-extreure_coef_glm(dt=dades,outcomes = "table7",x="grup",z="v.ajust",taulavariables = conductor_variables)
+model$coef %>% kable(caption=paste0("Betas",model$caption),digits=3) %>% 
+  kableExtra::kable_styling()
 
 
 
+```
+
+- To assess  the adherence to treatment after the addition of an SU, a DPP-4i or an SGLT-2i in patients with DM2 treated with metformin and insufficient glycemic control.
+
+
+```{r}
+
+
+
+```
+
+- To assess  the percentage of suspensions/dropouts of treatment at 6, 12 and 24 months (persistence of treatment).
+
+```{r}
+
+```
+
+- To describe the relevant adverse reactions produced after the addition of an SU, an DPP-4i or an SGLT-2i in patients with DM2 treated with metformin and insufficient glycemic control.
+
+
+```{r}
+
+descrTable(EV.AMPU.surv~grup,data=dades, show.ratio = T)
+descrTable(EV.CETO.surv~grup,data=dades, show.ratio = T)
+descrTable(EV.FRAC.surv~grup,data=dades, show.ratio = T)
+descrTable(EV.GI.surv~grup,data=dades, show.ratio = T)
+descrTable(EV.NEOGAST.surv~grup,data=dades, show.ratio = T)
+descrTable(EV.RAD.surv~grup,data=dades, show.ratio = T)
+descrTable(EV.RAH.surv~grup,data=dades, show.ratio = T)
+descrTable(EV.RAHEM.surv ~grup,data=dades, show.ratio = T)
+descrTable(EV.RAR.surv~grup,data=dades, show.ratio = T)
+
+
+```
+
+- To describe the comorbidity profile and baseline clinical characteristics of patients with DM2 and insufficient control with metformin in monotherapy after addition of a treatment with SU, DPP-4i or SGLT-2i.
+
+```{r}
+
+```
+
+- To describe the clinical characteristics of patients who have the best efficacy results (patients with a reduction of HbA1c of more than 0.5% and a weight reduction of at least 3% before the end of follow-up).
+
+
+
+```{r}
+
+```
 

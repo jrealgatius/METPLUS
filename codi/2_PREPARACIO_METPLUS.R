@@ -16,28 +16,7 @@
   devtools::source_url(link_source)
   
   
-  # 
-  # ###
-  # directori.arrel<-c("C:/Users/Jordi/Google Drive", 
-  #                    "C:/Users/usuari/Google Drive",
-  #                    "C:/Users/43728088M/Google Drive",
-  #                    "C:/Users/jreal/Google Drive",
-  #                    "D:/Google Drive",
-  #                    "G:/Google Drive",
-  #                    "E:/Google Drive")
-  # 
-  # ##  OJO! NO SOURCE ANTIC
-  # 
-  # library(dplyr)
-  # directori.arrel[file.exists(directori.arrel)] %>% 
-  #   file.path("Stat_codis/funcions_propies.R") %>% 
-  #   source()
-  
-  #  DIRECTORI DE TREBALL              #
-  #  setwd en directori de treball 
-  
-  # "CIBERDEM/GEDAPS/METPLUS/SIDIAP" %>% 
-  #   directori_treball(directori.arrel)
+
   
 # 0. Inicialització de parametres           -----------------------------
   
@@ -248,7 +227,18 @@ dades<-dades %>% mutate (
   HBA1C.dif324m=HBA1C.valor-HBA1C.valor324m,
   HBA1C.dif324m.cat=if_else(HBA1C.dif324m>0.5,1,0),                
   PESO.dif324m=PESO.valor-PESO.valor324m,
-  PESO.dif324m.cat=if_else(PESO.dif324m/PESO.valor>0.03,1,0)) 
+  PESO.dif324m.cat=if_else(PESO.dif324m/PESO.valor>0.03,1,0),
+  PESHB.dif324m.cat=if_else(PESO.dif324m/PESO.valor>0.03 & HBA1C.dif324m>0.5,1,0)) 
+
+
+# Calcular reduccions de PAS COLHDL.valor COLLDL.valor COLTOT.valor TG.valor
+dades<-dades %>% mutate (
+  PAS.dif324m=PAS.valor-PAS.valor324m,
+  COLHDL.dif324m=COLHDL.valor-COLHDL.valor324m,
+  COLLDL.dif324m=COLLDL.valor-COLLDL.valor324m,
+  COLTOT.dif324m=COLTOT.valor-COLTOT.valor324m,
+  TG.valor.dif324m=TG.valor-TG.valor324m) 
+
 
 #   7.1. Calcular events coma Surv: ---------------
 
@@ -291,9 +281,8 @@ dades<-dades %>% cbind(dades_surv)
 
 
 # 8. FActoritzar -------------
-
 dades<-factoritzar.NO.YES(dades,columna = "factoritzar.yes.no",taulavariables = conductor_variables)
-
+dades<-factoritzar(dades,variables=extreure.variables("factoritzar",conductor_variables))
 
 # 9. Labels  -------------
 
@@ -302,23 +291,10 @@ dades<-etiquetar_valors(dades,variables_factors = conductor_variables,fulla="val
 dades<-etiquetar(dades,taulavariables = conductor_variables,camp_descripcio = "Descripcio")
 
 
-# 10.1 Taules descriptives exploratories  ----------------
-taules<-llistadetaules.compare(tablero=c("table1","table2","table3","table4"),y="grup",variables = conductor_variables,dt=dades)
-
-
-formula<-formula_compare(x="table1",y="grup",taulavariables = conductor_variables)
-taula1.post<-descrTable(formula,data=dades,show.p.overall = F)
-
-
-# 10.2.Taula events -----------
-formula<-formula_compare(x="table5",y="grup",taulavariables = conductor_variables)
-taula_events<-descrTable(formula,data=dades, show.ratio = T)
-
-
-# Salvar objectes 
+# Salvar objectes ----------
 output_Rdata<-here::here("resultats","Output_metplus.RData")
 
-save(flow_global,flow_global2,taula1,taulaPS,taula1.post,taules,taula_events,file=output_Rdata)
+save(flow_global,flow_global2,taula1,taulaPS,dades,file=output_Rdata)
 
 
 
