@@ -286,9 +286,9 @@ dades<-factoritzar(dades,variables=extreure.variables("factoritzar",conductor_va
 
 # 9. Labels  -------------
 
-dades<-etiquetar(dades,taulavariables = conductor_variables,camp_descripcio = "Descripcio")
+dades<-etiquetar(dades,taulavariables = conductor_variables,camp_descripcio = "descripcio")
 dades<-etiquetar_valors(dades,variables_factors = conductor_variables,fulla="value_labels",camp_etiqueta = "etiqueta")
-dades<-etiquetar(dades,taulavariables = conductor_variables,camp_descripcio = "Descripcio")
+dades<-etiquetar(dades,taulavariables = conductor_variables,camp_descripcio = "descripcio")
 
 
 # Salvar objectes ----------
