@@ -13,38 +13,14 @@
 memory.size(max=130685)
 #
 #   SOURCE
-
 rm(list=ls())
 
-
+# Funcions 
 link_source<-paste0("https://github.com/jrealgatius/Stat_codis/blob/master/funcions_propies.R","?raw=T")
 devtools::source_url(link_source)
 
-
-# directori.arrel<-c("C:/Users/Jordi/Google Drive", 
-#                    "C:/Users/usuari/Google Drive",
-#                    "C:/Users/43728088M/Google Drive",
-#                    "C:/Users/jreal/Google Drive",
-#                    "D:/Google Drive",
-#                    "G:/Google Drive",
-#                    "E:/Google Drive")
-
-# library(dplyr)
-# directori.arrel[file.exists(directori.arrel)] %>% 
-#   file.path("Stat_codis/funcions_propies.R") %>% 
-#   source()
-
-# #  DIRECTORI DE TREBALL              #
-# #  setwd en directori de treball 
-# 
-# "CIBERDEM/GEDAPS/METPLUS/SIDIAP" %>% 
-#   directori_treball(directori.arrel)
-
-
 # Llista de fitxers :
-
 # 0. Inicialització de parametres           -----------------------------
-
 # N test mostra a seleccionar  (Nmostra=Inf)
 
 # Nmostra=Inf  # Seria tota la mostra
@@ -164,6 +140,11 @@ FX.PRESCRITS<-Nmostra %>% LLEGIR.FX.PRESCRITS()
 
 # 2.3. Fusionar ambdues fonts de dades (Prescripcions + facturacions) I formatejar  ----------------
 
+# Copia de prescripcions de metformines dels grups d¡'estudi
+FX.PRESCRITS_GRUPS<-FX.PRESCRITS %>% 
+  dplyr::semi_join(conductor_variables %>% filter(GRUP=="IDPP4" | GRUP=="iSGLT2" | GRUP=="SU"),by="cod") %>% 
+  dplyr::distinct(idp,cod,dat,dbaixa) 
+
 # Formatejar fitxers FACTURACIO + PRESCRIPCIONS (fusionar)
 FX.PRESCRITS<-
   FX.PRESCRITS %>%
@@ -210,72 +191,73 @@ farmacs_grups<-
 dt_grups<-farmacs_grups %>% select(idp,dtindex=data_index,FD.IDPP4,FD.iSGLT2,FD.SU,grup)
 dt_index<-dt_grups %>% select(idp,dtindex)
 
-
 # 3. Agregació de variables en data index  -------------------
-
 # 3.1.Agrego en data index MET (Any previ) ----------------------
-
 dt_fx.met<-agregar_facturacio(dt=FX.FACTURATS_PRESCRITS,finestra.dies=c(-365,0),dt.agregadors=conductor_variables,bd.dindex=dt_index,prefix="F.",camp_agregador="MET", agregar_data=F)
 
 # 3.2.Agrego en data index altres farmacs (Any previ) ---------------------
-
 dt_fx.AD<-agregar_facturacio(dt=FX.FACTURATS_PRESCRITS,finestra.dies=c(-365,0),dt.agregadors=conductor_variables,bd.dindex=dt_index,prefix="F.",camp_agregador="agr", agregar_data=F)
 
-# 3.3. Canvis de tractament grup d'estudi POST    ------------------- 
-
+# 3.3. Canvis de tractament grup d'estudi POST  (1-24 mesos)  ------------------- 
 dt_fx.canvis<-agregar_facturacio(dt=FX.FACTURATS,finestra.dies=c(+1,+730),dt.agregadors=conductor_variables,bd.dindex=dt_index,prefix="CANVITX.",camp_agregador="GRUP", agregar_data=T)
 
-# 3.4. Agregació de Efectes adversos (tractaments) POST 
+# 3.4. Agregació de nombre d'envasos facturats POST    ------------------- 
+dt_fx.Nenvas<-agregar_facturacio(dt=FX.FACTURATS,finestra.dies=c(0,+730),dt.agregadors=conductor_variables,bd.dindex=dt_index,prefix="NenvasTX.",camp_agregador="GRUP", agregar_data=F)
+
+# 3.5. Agregació de temps en dies de prescripcio POST (+24 mesos)    ------------------- 
+dt_fx.temps<-agregar_prescripcions(dt=FX.PRESCRITS_GRUPS,finestra.dies=c(0,+730),dt.agregadors=conductor_variables,bd.dindex=dt_index,prefix="tempsTX.",camp_agregador="GRUP", agregar_data=F)
+
+# 3.6. Agregació de Efectes adversos (tractaments) POST 
 REACCIONS_ADV<-Nmostra %>% LLEGIR.REACCIONS_ADV() %>%  mutate(dbaixa="20191212")
 
 dt_fx_Radversos<-agregar_prescripcions(dt=REACCIONS_ADV,bd.dindex=dt_index,dt.agregadors = conductor_variables,finestra.dies = c(1,+730),prefix="RADV.",camp_agregador="REAC_ADV_FARMACO",agregar_data=T)
 
-# 3.5. Agregació de problemes basals I   -----------------
+# 3.7. Agregació de problemes basals I   -----------------
 dt_problemes<-agregar_problemes(dt=PROBLEMES_total,bd.dindex=dt_index,dt.agregadors=conductor_variables,finestra.dies=c(-Inf,0),prefix="DG.",camp_agregador="agr") 
 
-# 3.6. Agregació de problemes basals II  -----------------
+# 3.8. Agregació de problemes basals II  -----------------
 dt_problemes_NIV2<-agregar_problemes(dt=PROBLEMES_total,bd.dindex=dt_index,dt.agregadors=conductor_variables,finestra.dies=c(-Inf,0),prefix="DG.",camp_agregador="agr2") 
 
-# 3.7. Agregació de events post (+24 MESOS)  -----------------
+# 3.9. Agregació de events post (+24 MESOS)  -----------------
 dt_events<-agregar_problemes(dt=PROBLEMES_total,bd.dindex=dt_index,dt.agregadors=conductor_variables,finestra.dies=c(1,730),prefix="EV.",camp_agregador="EVENT_DG") 
 
 rm(PROBLEMES_total)
-# 3.8.Lectura + Agregació de variables basals  ---------------------
+# 3.10.Lectura + Agregació de variables basals  ---------------------
 VARIABLES<-Nmostra %>% LLEGIR.VARIABLES() %>% select(idp,cod=agr,dat,val)
 dt_variables<-agregar_analitiques(dt=VARIABLES,bd.dindex=dt_index,finestra.dies=c(-365,0)) 
 
-# 3.9.Agregació de variables seguiment (3-24 mesos+-: 90-730 dies)  ---------------------
+# 3.11.Agregació de variables seguiment (3-24 mesos+-: 90-730 dies)  ---------------------
 dt_variables324m<-agregar_analitiques(dt=VARIABLES,bd.dindex=dt_index,finestra.dies=c(90,730),sufix = c(".valor324m",".dies324m"))
 
-# 3.10.Agregació de variables seguiment (24 mesos+-3m: 639-821 dies)  ---------------------
+# 3.12.Agregació de variables seguiment (24 mesos+-3m: 639-821 dies)  ---------------------
 dt_variables24m<-agregar_analitiques(dt=VARIABLES,bd.dindex=dt_index,finestra.dies=c(639,821),sufix = c(".valor24m",".dies24m")) 
 
-# 3.11.Agregació de variables seguiment (12 mesos+-3m: 274-456 dies)  ---------------------
+# 3.13.Agregació de variables seguiment (12 mesos+-3m: 274-456 dies)  ---------------------
 dt_variables12m<-agregar_analitiques(dt=VARIABLES,bd.dindex=dt_index,finestra.dies=c(274,456),sufix = c(".valor12m",".dies12m")) 
 
-# 3.12.Agregació de variables seguiment (6 mesos+-3m: 90-273 dies)  ---------------------
+# 3.14.Agregació de variables seguiment (6 mesos+-3m: 90-273 dies)  ---------------------
 dt_variables6m<-agregar_analitiques(dt=VARIABLES,bd.dindex=dt_index,finestra.dies=c(90,273),sufix = c(".valor6m",".dies6m")) 
 
 rm(VARIABLES)
 
-# 3.13.Lectura i agregació de clíniques basals  ---------------------
+# 3.15.Lectura i agregació de clíniques basals  ---------------------
 CLINIQUES<-Nmostra %>% LLEGIR.CLINIQUES() %>% select(idp,cod=agr,dat,val)
 dt_cliniques<-agregar_analitiques(dt=CLINIQUES,bd.dindex=dt_index,finestra.dies=c(-365,0)) 
 
-# 3.14.Agregació de clíniques seguiment (3-24 mesos+-: 90-730 dies)  ---------------------
+# 3.16.Agregació de clíniques seguiment (3-24 mesos+-: 90-730 dies)  ---------------------
 dt_cliniques324m<-agregar_analitiques(dt=CLINIQUES,bd.dindex=dt_index,finestra.dies=c(90,730),sufix = c(".valor324m",".dies324m")) 
 
-# 3.15.Agregació de clíniques seguiment (24 mesos+-3m: 639-821 dies)  ---------------------
+# 3.17.Agregació de clíniques seguiment (24 mesos+-3m: 639-821 dies)  ---------------------
 dt_cliniques24m<-agregar_analitiques(dt=CLINIQUES,bd.dindex=dt_index,finestra.dies=c(639,821),sufix = c(".valor24m",".dies24m")) 
 
-# 3.16.Agregació de clíniques seguiment (12 mesos+-3m: 274-456 dies)  ---------------------
+# 3.18.Agregació de clíniques seguiment (12 mesos+-3m: 274-456 dies)  ---------------------
 dt_cliniques12m<-agregar_analitiques(dt=CLINIQUES,bd.dindex=dt_index,finestra.dies=c(274,456),sufix = c(".valor12m",".dies12m")) 
 
-# 3.17.Agregació de clíniques seguiment (6 mesos+-3m: 90-273 dies)  ---------------------
+# 3.19.Agregació de clíniques seguiment (6 mesos+-3m: 90-273 dies)  ---------------------
 dt_cliniques6m<-agregar_analitiques(dt=CLINIQUES,bd.dindex=dt_index,finestra.dies=c(90,273),sufix = c(".valor6m",".dies6m")) 
 rm(CLINIQUES)
 
-# 3.19.Agregació de tabac  ---------------------
+# 3.20.Agregació de tabac  ---------------------
 TABAC<-Nmostra %>% LLEGIR.TABAC %>% mutate(cod="tab")
 dt_tabac<-agregar_analitiques(dt=TABAC,bd.dindex =dt_index,finestra.dies=c(-Inf,0))
 rm(TABAC)
@@ -291,6 +273,8 @@ dt_grups<-formatar_dtindex(dt_grups)
 dt_fx.met<-formatar_dtindex(dt_fx.met)
 dt_fx.AD<-formatar_dtindex(dt_fx.AD)
 dt_fx.canvis<-formatar_dtindex(dt_fx.canvis)
+dt_fx.Nenvas<-formatar_dtindex(dt_fx.Nenvas)
+dt_fx.temps<-formatar_dtindex(dt_fx.temps)
 
 dt_problemes<-formatar_dtindex(dt_problemes)
 dt_problemes_NIV2<-formatar_dtindex(dt_problemes_NIV2)
@@ -318,6 +302,8 @@ BDTOTAL<-dt_grups %>%
   left_join(dt_fx.met, by=c("idp","dtindex")) %>% 
   left_join(dt_fx.AD, by=c("idp","dtindex")) %>% 
   left_join(dt_fx.canvis, by=c("idp","dtindex")) %>% 
+  left_join(dt_fx.Nenvas, by=c("idp","dtindex")) %>% 
+  left_join(dt_fx.temps, by=c("idp","dtindex")) %>% 
   left_join(dt_problemes, by=c("idp","dtindex")) %>%
   left_join(dt_problemes_NIV2, by=c("idp","dtindex")) %>% 
   left_join(dt_variables, by=c("idp","dtindex")) %>% 
@@ -335,7 +321,7 @@ BDTOTAL<-dt_grups %>%
   left_join(dt_fx_Radversos, by=c("idp","dtindex"))
 
 
-write.csv(names(BDTOTAL),file="variables.csv")
+write.csv2(names(BDTOTAL),file="variables.csv")
 
 saveRDS(BDTOTAL,fitxersortida)
 
