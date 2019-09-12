@@ -11,7 +11,7 @@ output:
 
 ```{r setup, include=FALSE}
 
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE, message=FALSE, warning=FALSE, include=T,size="huge")
 
 rm(list=ls())
 memory.size(max=160000)
@@ -192,7 +192,6 @@ model$taula_OR %>% head(2) %>%
 
 ```{r}
 
-
 # Outcomes continus 
 
 # Diferencies crues
@@ -204,6 +203,10 @@ model$coef %>% kable(caption=paste0("Betas",model$caption),digits=3) %>%
 # Diferencies ajustades
 model<-extreure_coef_glm(dt=dades,outcomes = "outcomes_continus",x="grup",z="v.ajust",taulavariables = conductor_variables)
 
+# Etiquetar coeficients
+model$coef<-model$coef %>% etiquetar_taula(camp = "Outcome",conductor_variables)
+
+# Mostrar coeficients
 model$coef %>% kable(caption=paste0("Betas",model$caption),digits=3) %>% 
   kableExtra::kable_styling()
 
@@ -215,17 +218,21 @@ model$coef %>% kable(caption=paste0("Betas",model$caption),digits=3) %>%
 
 ```{r}
 formula<-formula_compare("table6",y="grup",taulavariables = conductor_variables)
-descrTable(formula,dades)
-
+descrTable(formula,dades) %>% 
+  export2md(caption = "Secondary variables related to treatment efficacy")
 
 # Diferencies crues
 model<-extreure_coef_glm(dt=dades,outcomes = "table6",x="grup",z="",taulavariables = conductor_variables)
-
+# Etiquetar coeficients
+model$coef<-model$coef %>% etiquetar_taula(camp = "Outcome",conductor_variables)
 model$coef %>% kable(caption=paste0("Betas",model$caption),digits=3) %>% 
   kableExtra::kable_styling()
 
 # Diferencies ajustades
 model<-extreure_coef_glm(dt=dades,outcomes = "table6",x="grup",z="v.ajust",taulavariables = conductor_variables)
+# Etiquetar coeficients
+model$coef<-model$coef %>% etiquetar_taula(camp = "Outcome",conductor_variables)
+# Mostrar taula
 model$coef %>% kable(caption=paste0("Betas",model$caption),digits=3) %>% 
   kableExtra::kable_styling()
 
@@ -238,12 +245,14 @@ model$coef %>% kable(caption=paste0("Betas",model$caption),digits=3) %>%
 ```{r}
 
 formula<-formula_compare("table7",y="grup",taulavariables = conductor_variables)
-descrTable(formula,dades)
+descrTable(formula,dades) %>% 
+  export2md(caption = "Secondary variables related to treatment efficacy")
 
 
 # Diferencies crues
 model<-extreure_coef_glm(dt=dades,outcomes = "table7",x="grup",z="",taulavariables = conductor_variables)
-
+# Etiquetar coeficients
+model$coef<-model$coef %>% etiquetar_taula(camp = "Outcome",conductor_variables)
 model$coef %>% kable(caption=paste0("Betas",model$caption),digits=3) %>% 
   kableExtra::kable_styling()
 
@@ -251,7 +260,6 @@ model$coef %>% kable(caption=paste0("Betas",model$caption),digits=3) %>%
 model<-extreure_coef_glm(dt=dades,outcomes = "table7",x="grup",z="v.ajust",taulavariables = conductor_variables)
 model$coef %>% kable(caption=paste0("Betas",model$caption),digits=3) %>% 
   kableExtra::kable_styling()
-
 
 
 ```
