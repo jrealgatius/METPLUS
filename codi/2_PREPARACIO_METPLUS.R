@@ -218,9 +218,7 @@ flow_global2
 
 dades<-dades %>% filter(ps==1)
 
-
 # 7. Calcular outcomes: (Reducció de HbA1c i Reducció de PES)  ---------------------
-
 # HBA1C.valor12m HBA1C.valor324m HBA1C.valor24m
 
 dades<-dades %>% mutate (
@@ -238,6 +236,26 @@ dades<-dades %>% mutate (
   COLLDL.dif324m=COLLDL.valor-COLLDL.valor324m,
   COLTOT.dif324m=COLTOT.valor-COLTOT.valor324m,
   TG.valor.dif324m=TG.valor-TG.valor324m) 
+
+# Outcomes Adherencia / Suspensions  #####
+
+# Recode missings de dispensació a 0
+dades<-dades %>% mutate_at(vars(starts_with("NenvasTX.")), 
+                           funs(if_else(is.na(.),0,.))) 
+
+# Calculo de Medication possession ratio (PMR)
+dades<-dades %>% 
+  mutate(MPR.TX=case_when(grup=="ISGLT2"~(NenvasTX.iSGLT2*30.4)/tempsTX.iSGLT2,
+                          grup=="IDPP4"~(NenvasTX.IDPP4*30.4)/tempsTX.IDPP4,
+                          grup=="SU"~(NenvasTX.SU*30.4)/tempsTX.SU))
+
+
+dades<-dades %>% mutate(MPR.TX=if_else(MPR.TX>1,1,MPR.TX))
+dades %>% select(grup,extreure.variables(taula="outcome",conductor_variables),MPR.TX) %>% filter(is.na(MPR.TX))
+
+dades<-dades %>% mutate(MPR.TX.cat=case_when(MPR.TX>0.8 ~"Yes",
+                                  MPR.TX<=0.8~"No",
+                                  is.na(MPR.TX)~"NA"))
 
 
 #   7.1. Calcular events coma Surv: ---------------
@@ -289,6 +307,7 @@ dades<-factoritzar(dades,variables=extreure.variables("factoritzar",conductor_va
 dades<-etiquetar(dades,taulavariables = conductor_variables,camp_descripcio = "descripcio")
 dades<-etiquetar_valors(dades,variables_factors = conductor_variables,fulla="value_labels",camp_etiqueta = "etiqueta")
 dades<-etiquetar(dades,taulavariables = conductor_variables,camp_descripcio = "descripcio")
+
 
 
 # Salvar objectes ----------
