@@ -129,34 +129,48 @@ descrTable(formula,data=dades,show.p.mul = T) %>%
 # OR's cru
 outcome<-"HBA1C.dif324m.cat"
 
-model<-extreure_model_logistic("grup",y=outcome,taulavariables = conductor_variables,dades=dades,valor_outcome = "Yes")
+model<-extreure_model_logistic(x="grup",y=outcome,taulavariables = conductor_variables,dades=dades,valor_outcome = "Yes")
 
-model$taula_OR %>% head(2) %>% 
+formula.LOGIT(x="grup", y=outcome, taulavariables = conductor_variables) %>% 
+  extreure_OR(dades=dades) %>% tail(2) %>% 
   kable(caption = paste0("Odds ratio reducción de HBA1C ajustados por: ",paste0(extreure.variables("grup",conductor_variables),collapse = ", "),digits = 3)) %>%   
   kableExtra::kable_styling()
 
-# ORs ajustat
-model<-extreure_model_logistic("grup_ajustat",y=outcome,taulavariables = conductor_variables,dades=dades,valor_outcome = "Yes")
+# model$taula_OR %>% head(2) %>% 
+#   kable(caption = paste0("Odds ratio reducción de HBA1C ajustados por: ",paste0(extreure.variables("grup",conductor_variables),collapse = ", "),digits = 3)) %>%   
+#   kableExtra::kable_styling()
 
-model$taula_OR %>% head(2) %>% 
-  kable(caption = paste0("OR ajustados por:",paste0(extreure.variables("grup_ajustat",conductor_variables),collapse = ", ")),digits = 3) %>%   
+# ORs ajustat
+# model<-extreure_model_logistic("grup_ajustat",y=outcome,taulavariables = conductor_variables,dades=dades,valor_outcome = "Yes")
+# 
+# model$taula_OR %>% head(2) %>% 
+#   kable(caption = paste0("OR ajustados por:",paste0(extreure.variables("grup_ajustat",conductor_variables),collapse = ", ")),digits = 3) %>%   
+#   kableExtra::kable_styling()
+
+
+formula.LOGIT(x="grup_ajustat", y=outcome, taulavariables = conductor_variables) %>% 
+  extreure_OR(dades=dades) %>% tail(2) %>% 
+  kable(caption = paste0("Odds ratio reducción de HBA1C ajustados por: ",paste0(extreure.variables("grup_ajustat",conductor_variables),collapse = ", "),digits = 3)) %>%   
   kableExtra::kable_styling()
+
 
 
 ##################  Odds Ratio  PESO.dif324m.cat      --------
 # OR's cru
 outcome<-"PESO.dif324m.cat"
 
-model<-extreure_model_logistic("grup",y=outcome,taulavariables = conductor_variables,dades=dades,valor_outcome = "Yes")
+# model<-extreure_model_logistic("grup",y=outcome,taulavariables = conductor_variables,dades=dades,valor_outcome = "Yes")
 
-model$taula_OR %>% head(2) %>% 
+formula.LOGIT(x="grup_ajustat", y=outcome, taulavariables = conductor_variables) %>% 
+  extreure_OR(dades=dades) %>% tail(2) %>% 
   kable(caption = paste0("Odds ratio reducción de peso ajustados por: ",paste0(extreure.variables("grup",conductor_variables),collapse = ", "),digits = 3)) %>%   
   kableExtra::kable_styling()
 
 # ORs ajustat
-model<-extreure_model_logistic("grup_ajustat",y=outcome,taulavariables = conductor_variables,dades=dades,valor_outcome = "Yes")
+# model<-extreure_model_logistic("grup_ajustat",y=outcome,taulavariables = conductor_variables,dades=dades,valor_outcome = "Yes")
 
-model$taula_OR %>% head(2) %>% 
+formula.LOGIT(x="grup_ajustat", y=outcome, taulavariables = conductor_variables) %>% 
+  extreure_OR(dades=dades) %>% tail(2) %>% 
   kable(caption = paste0("OR ajustados por:",paste0(extreure.variables("grup_ajustat",conductor_variables),collapse = ", ")),digits = 3) %>%   
   kableExtra::kable_styling()
 
@@ -165,16 +179,19 @@ model$taula_OR %>% head(2) %>%
 # OR's cru
 outcome<-"PESHB.dif324m.cat"
 
-model<-extreure_model_logistic("grup",y=outcome,taulavariables = conductor_variables,dades=dades,valor_outcome = "Yes")
+# model<-extreure_model_logistic("grup",y=outcome,taulavariables = conductor_variables,dades=dades,valor_outcome = "Yes")
 
-model$taula_OR %>% head(2) %>% 
+
+formula.LOGIT(x="grup_ajustat", y=outcome, taulavariables = conductor_variables) %>% 
+  extreure_OR(dades=dades) %>% tail(2)
   kable(caption = paste0("Odds ratio reducción de peso y HBA1C ajustados por: ",paste0(extreure.variables("grup",conductor_variables),collapse = ", "),digits = 3)) %>%   
   kableExtra::kable_styling()
 
 # ORs ajustat
-model<-extreure_model_logistic("grup_ajustat",y=outcome,taulavariables = conductor_variables,dades=dades,valor_outcome = "Yes")
+# model<-extreure_model_logistic("grup_ajustat",y=outcome,taulavariables = conductor_variables,dades=dades,valor_outcome = "Yes")
 
-model$taula_OR %>% head(2) %>% 
+formula.LOGIT(x="grup_ajustat", y=outcome, taulavariables = conductor_variables) %>% 
+  extreure_OR(dades=dades) %>% tail(2) %>% 
   kable(caption = paste0("OR ajustados por:",paste0(extreure.variables("grup_ajustat",conductor_variables),collapse = ", ")),digits = 3) %>%   
   kableExtra::kable_styling()
 
@@ -269,7 +286,9 @@ model$coef %>% kable(caption=paste0("Betas",model$caption),digits=3) %>%
 
 ```{r}
 
-
+formula<-formula_compare("table8",y="grup",taulavariables = conductor_variables)
+descrTable(formula,dades) %>% 
+  export2md(caption = "Adherence to  treatment 24m post")
 
 ```
 

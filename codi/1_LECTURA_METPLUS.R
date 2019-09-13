@@ -140,7 +140,7 @@ FX.PRESCRITS<-Nmostra %>% LLEGIR.FX.PRESCRITS()
 
 # 2.3. Fusionar ambdues fonts de dades (Prescripcions + facturacions) I formatejar  ----------------
 
-# Copia de prescripcions de metformines dels grups d¡'estudi
+# Copia de prescripcions dels grups d¡'estudi
 FX.PRESCRITS_GRUPS<-FX.PRESCRITS %>% 
   dplyr::semi_join(conductor_variables %>% filter(GRUP=="IDPP4" | GRUP=="iSGLT2" | GRUP=="SU"),by="cod") %>% 
   dplyr::distinct(idp,cod,dat,dbaixa) 
@@ -162,7 +162,8 @@ FX.FACTURATS_PRESCRITS<-
 # Alliberar memoria 
 gc()
 # rm(FX.FACTURATS,FX.PRESCRITS)
-  
+
+
 # 2.4.- Agregar: Generar data de facturació/prescripció dels farmacs d'estudi (IDPP4/ISGLT2/SU) ---------------
 
 # Seleccionar la primera data de prescripció per cada tipus de farmac #
@@ -190,6 +191,25 @@ farmacs_grups<-
 
 dt_grups<-farmacs_grups %>% select(idp,dtindex=data_index,FD.IDPP4,FD.iSGLT2,FD.SU,grup)
 dt_index<-dt_grups %>% select(idp,dtindex)
+
+
+# 2.6. Generar data de final de tractament iniciat (havent eliminat discontinuitats de N dies (gap_dies=60))
+
+gap_dies<-60
+
+# 2.6.1. Tenint en compte facturació + dispensació 
+FX.FACTURATS_PRESCRITS_GRUPS<-FX.FACTURATS_PRESCRITS %>% 
+  dplyr::semi_join(conductor_variables %>% filter(GRUP=="IDPP4" | GRUP=="iSGLT2" | GRUP=="SU"),by="cod") %>% 
+  dplyr::left_join(select(conductor_variables,cod,GRUP),by="cod") %>% 
+  mutate(dat=lubridate::ymd(paste0(as.character(dat),"15")),datafi=dat+(30*env)) %>% 
+  head(10000)
+  
+# Falta acavar funció estop tractament
+stops_tractaments(dades,gap,finextra)
+
+
+# 2.6.2. Tenint en compte només facturació
+
 
 # 3. Agregació de variables en data index  -------------------
 # 3.1.Agrego en data index MET (Any previ) ----------------------
