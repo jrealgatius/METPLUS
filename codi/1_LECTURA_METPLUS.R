@@ -24,7 +24,7 @@ devtools::source_url(link_source)
 # N test mostra a seleccionar  (Nmostra=Inf)
 
 # Nmostra=Inf  # Seria tota la mostra
-Nmostra=Inf
+Nmostra=100000
 
 # Conductor cataleg 
 fitxer_cataleg<-"cataleg_met.xls"
@@ -195,21 +195,43 @@ dt_index<-dt_grups %>% select(idp,dtindex)
 
 # 2.6. Generar data de final de tractament iniciat (havent eliminat discontinuitats de N dies (gap_dies=60))
 
-gap_dies<-60
 
 # 2.6.1. Tenint en compte facturació + dispensació 
-FX.FACTURATS_PRESCRITS_GRUPS<-FX.FACTURATS_PRESCRITS %>% 
+
+# Formatar Fitxer amb: dataindex (date), idp, grup(farmac), dat(date),datafi(date)
+
+FX.FACTURATS_PRESCRITS_GRUPS<-
+  dt_index %>% 
+  left_join(FX.FACTURATS_PRESCRITS,by="idp") %>% 
   dplyr::semi_join(conductor_variables %>% filter(GRUP=="IDPP4" | GRUP=="iSGLT2" | GRUP=="SU"),by="cod") %>% 
   dplyr::left_join(select(conductor_variables,cod,GRUP),by="cod") %>% 
-  mutate(dat=lubridate::ymd(paste0(as.character(dat),"15")),datafi=dat+(30*env)) %>% 
-  head(10000)
-  
-# Falta acavar funció estop tractament
-stops_tractaments(dades,gap,finextra)
+  mutate(dat=lubridate::ymd(paste0(as.character(dat),"15")),datafi=dat+(30*env))
+
+# Eliminar gaps i solapaments per grups agregar_solapaments_gaps()
+gap_dies<-160
+# farmacs_dt_sense_gaps<-agregar_solapaments_gaps(dt=FX.FACTURATS_PRESCRITS_GRUPS,id="idp",datainici = "dat",datafinal="datafi",gap=gap_dies)
+
+farmacs_dt_sense_gaps<-FX.FACTURATS_PRESCRITS_GRUPS %>% 
+  split(.$GRUP) %>% 
+  map(~agregar_solapaments_gaps(dt=.x,id="idp",datainici = "dat",datafinal="datafi",gap=gap_dies)) %>% 
+  map_df(~bind_rows(.),.id="GRUP")
+
+# Verificar solapamenta 
+set.seed(125)
+MAP_ggplot_univariant(farmacs_dt_sense_gaps %>% filter(GRUP=="IDPP4"),datainicial = "dat",datafinal = "datafi",id="idp",Nmostra = 10)
+
+# Capturar primera datafi per pacient i grup serà el primer stop d'aquell tractament 
+farmacs_STOP<-
+  farmacs_dt_sense_gaps %>% 
+  group_by(idp,GRUP) %>% 
+  slice(1) %>% 
+  ungroup() %>% 
+  select(idp,GRUP,datafi) %>% 
+  spread(GRUP,datafi)
+
 
 
 # 2.6.2. Tenint en compte només facturació
-
 
 # 3. Agregació de variables en data index  -------------------
 # 3.1.Agrego en data index MET (Any previ) ----------------------
