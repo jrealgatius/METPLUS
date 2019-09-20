@@ -45,6 +45,7 @@ library(lubridate)
 
 dades<-dades %>% mutate(dtindex=as_date(dtindex))
 
+
 #   Recode farmacs basals ---------
 
 # NA --> 0 (Else=1) (No hi ha 0)
@@ -119,8 +120,6 @@ dades<-dades %>%
 
 #   4.1. Inicialització de paràmetres -----------
 caliper<-0.05
-set.seed(111)
-
 formula<-formula_compare(x="match",y="grup",taulavariables = conductor_variables)
 taula1<-descrTable(formula,data=dades,show.all = T,show.n = T)
 
@@ -135,6 +134,7 @@ dades_sub1<-dadesmatching %>% filter(grup=="IDPP4" | grup=="ISGLT2")
 dades_sub1<-dades_sub1 %>% mutate(grup_dic=ifelse(grup=="ISGLT2",1,0))
 
 # Aplicar matching A subset     #
+set.seed(111)
 formulaPS<-formula_compare(x="match",y="grup_dic",taulavariables = conductor_variables)
 exact<-extreure.variables("match_exact",taulavariables = conductor_variables)
 m.out<-matchit(formulaPS,method="nearest",data=as.data.frame(dades_sub1),caliper=caliper,ratio=1,exact=exact)
@@ -164,6 +164,7 @@ dades_sub1<-dades_sub1 %>% mutate(grup_dic=ifelse(grup=="ISGLT2",1,0))
 formulaPS<-formula_compare(x="match",y="grup_dic",taulavariables = conductor_variables)
 exact<-extreure.variables("match_exact",taulavariables = conductor_variables)
 
+set.seed(111)
 m.out<-matchit(formulaPS,method="nearest",data=as.data.frame(dades_sub1),caliper=caliper,ratio=1,exact=exact)
 
 # m.out<-matchit(formulaPS,method="nearest",data=dades_sub1,caliper=caliper,ratio=1)
@@ -251,11 +252,68 @@ dades<-dades %>%
 
 
 dades<-dades %>% mutate(MPR.TX=if_else(MPR.TX>1,1,MPR.TX))
-dades %>% select(grup,extreure.variables(taula="outcome",conductor_variables),MPR.TX) %>% filter(is.na(MPR.TX))
+dades %>% select(grup,extreure.variables(taula="outcome_tx",conductor_variables),MPR.TX) %>% filter(is.na(MPR.TX))
 
 dades<-dades %>% mutate(MPR.TX.cat=case_when(MPR.TX>0.8 ~"Yes",
                                   MPR.TX<=0.8~"No",
                                   is.na(MPR.TX)~"NA"))
+
+# Calculo suspensions/dropouts of treatment at 6,12,24 mesos en base a STOP's Dispensados 
+dades<-dades %>% mutate(temps.STOP.FD=case_when(
+  grup=="IDPP4" ~STOP.FD.IDPP4-dtindex,
+  grup=="SU" ~STOP.FD.SU-dtindex,
+  grup=="ISGLT2" ~STOP.FD.iSGLT2-dtindex ))
+
+# Stop 24m
+dades<-dades %>% mutate(
+  STOP24m.FD=case_when(
+  is.na(temps.STOP.FD)~"No dispesación",
+  temps.STOP.FD<730 ~"Si Stop<24meses",
+  temps.STOP.FD>=730 ~"+24m"))
+
+# Stop 12m
+dades<-dades %>% mutate(
+  STOP12m.FD=case_when(
+    is.na(temps.STOP.FD)~"No dispesación",
+    temps.STOP.FD<365 ~"Si Stop<12meses",
+    temps.STOP.FD>=365 ~"+12meses"))
+
+# Stop 6m
+dades<-dades %>% mutate(
+  STOP6m.FD=case_when(
+    is.na(temps.STOP.FD)~"No dispesación",
+    temps.STOP.FD<182 ~"Si Stop<6m",
+    temps.STOP.FD>=182 ~"+6m"))
+
+# Genero objecte surv Stop tractament 
+dades$STOP.FD_surv<-Surv(dades$temps.STOP.FD,dades$temps.STOP.FD>0)
+
+
+# Calcular datafi OT On treatment (datafiOT)  ----------------
+# Definition of follow-up period and premature discontinuation
+# Death, the switch or addition of a new antidiabetic treatment, last billing of study drugs before 24 months after prescription, transfers to non-ICS centers.
+
+# CanviTx (data minima de totes)
+dades<-dades %>% mutate(datafiOT= case_when(
+  grup=="IDPP4" ~ pmin(STOP.FD.IDPP4,CANVITX.iSGLT2,CANVITX.SU,na.rm=T),
+  grup=="ISGLT2" ~ pmin(STOP.FD.IDPP4,CANVITX.IDPP4,CANVITX.SU,na.rm=T),
+  grup=="SU" ~ pmin(STOP.FD.IDPP4,CANVITX.iSGLT2,CANVITX.IDPP4,na.rm=T)))
+  
+# Actualitzar maxim 24 mesos o exitus/trasllat 
+dades<-dades %>% mutate(datafiOT= case_when(
+  datafiOT-dtindex>=365 ~ dtindex+365,
+  datafiOT-dtindex<=365 ~ datafiOT))
+
+dades<-dades %>% mutate(datafiOT =case_when(
+  (datafiOT-dtindex<=365) & (situacio=="D" | situacio=="T") ~ pmin(as.Date(as.character(sortida),format="%Y%m%d"),datafiOT,na.rm=T),
+  TRUE~datafiOT))
+
+
+
+
+
+descrTable(grup~STOP24m.FD+STOP12m.FD+STOP6m.FD, data=dades)
+
 
 
 #   7.1. Calcular events coma Surv: ---------------
@@ -298,15 +356,13 @@ dades_surv<-map(llista_events,~generar_Surv(dt=dades,.)) %>%
 dades<-dades %>% cbind(dades_surv)
 
 
+# 9. Labels  -------------
+dades<-etiquetar(dades,taulavariables = conductor_variables,camp_descripcio = "descripcio")
+dades<-etiquetar_valors(dades,variables_factors = conductor_variables,fulla="value_labels",camp_etiqueta = "etiqueta")
+
 # 8. FActoritzar -------------
 dades<-factoritzar.NO.YES(dades,columna = "factoritzar.yes.no",taulavariables = conductor_variables)
 dades<-factoritzar(dades,variables=extreure.variables("factoritzar",conductor_variables))
-
-# 9. Labels  -------------
-
-dades<-etiquetar(dades,taulavariables = conductor_variables,camp_descripcio = "descripcio")
-dades<-etiquetar_valors(dades,variables_factors = conductor_variables,fulla="value_labels",camp_etiqueta = "etiqueta")
-dades<-etiquetar(dades,taulavariables = conductor_variables,camp_descripcio = "descripcio")
 
 
 

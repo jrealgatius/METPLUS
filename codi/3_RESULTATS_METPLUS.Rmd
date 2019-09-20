@@ -20,14 +20,11 @@ memory.size(max=160000)
 output_Rdata<-here::here("resultats","Output_metplus.RData")
 conductor_variables<-here::here("variables_metplus.xls")
 
-
-
 # Càrrega de libreries i funcions  --------------
 library(compareGroups)
 
 link_source<-paste0("https://github.com/jrealgatius/Stat_codis/blob/master/funcions_propies.R","?raw=T")
 devtools::source_url(link_source)
-  
 
 # Carrega d'objectes
 load(output_Rdata)
@@ -37,6 +34,8 @@ load(output_Rdata)
 
 
 ```{r generacio_taules, echo=F, include=F}
+
+dades<-etiquetar(dades,taulavariables = conductor_variables)
 
 # 10.1 Taules descriptives exploratories  ----------------
 taules<-llistadetaules.compare(tablero=c("table1","table2","table3","table4"),y="grup",variables = conductor_variables,dt=dades)
@@ -124,81 +123,73 @@ formula<-formula_compare(x="outcomes1",y="grup",taulavariables = conductor_varia
 descrTable(formula,data=dades,show.p.mul = T) %>% 
   export2md(caption = "Variables related to treatment efficacy")
 
-
 ##################  Odds Ratio HBA1C.dif324m.cat       --------
 # OR's cru
 outcome<-"HBA1C.dif324m.cat"
 
+
+
+# dades<-factoritzar(dades,variables = extreure.variables("factoritzar",conductor_variables))
+# Ojo!! Si no està factoritzat outcomes y var independets no funciona el model
+
 model<-extreure_model_logistic(x="grup",y=outcome,taulavariables = conductor_variables,dades=dades,valor_outcome = "Yes")
 
-formula.LOGIT(x="grup", y=outcome, taulavariables = conductor_variables) %>% 
-  extreure_OR(dades=dades) %>% tail(2) %>% 
-  kable(caption = paste0("Odds ratio reducción de HBA1C ajustados por: ",paste0(extreure.variables("grup",conductor_variables),collapse = ", "),digits = 3)) %>%   
+model$taula_OR %>% head(2) %>%
+  kable(caption = paste0("Odds ratio reducción de HBA1C ajustados por: ",paste0(extreure.variables("grup",conductor_variables),collapse = ", "),digits = 3)) %>%
   kableExtra::kable_styling()
 
-# model$taula_OR %>% head(2) %>% 
-#   kable(caption = paste0("Odds ratio reducción de HBA1C ajustados por: ",paste0(extreure.variables("grup",conductor_variables),collapse = ", "),digits = 3)) %>%   
-#   kableExtra::kable_styling()
+# Ajustat
+model<-extreure_model_logistic("grup_ajustat",y=outcome,taulavariables = conductor_variables,dades=dades,valor_outcome = "Yes")
 
-# ORs ajustat
-# model<-extreure_model_logistic("grup_ajustat",y=outcome,taulavariables = conductor_variables,dades=dades,valor_outcome = "Yes")
-# 
-# model$taula_OR %>% head(2) %>% 
-#   kable(caption = paste0("OR ajustados por:",paste0(extreure.variables("grup_ajustat",conductor_variables),collapse = ", ")),digits = 3) %>%   
-#   kableExtra::kable_styling()
-
-
-formula.LOGIT(x="grup_ajustat", y=outcome, taulavariables = conductor_variables) %>% 
-  extreure_OR(dades=dades) %>% tail(2) %>% 
-  kable(caption = paste0("Odds ratio reducción de HBA1C ajustados por: ",paste0(extreure.variables("grup_ajustat",conductor_variables),collapse = ", "),digits = 3)) %>%   
+model$taula_OR %>% head(2) %>%
+  kable(caption = paste0("OR ajustados por:",paste0(extreure.variables("grup_ajustat",conductor_variables),collapse = ", ")),digits = 3) %>%
   kableExtra::kable_styling()
 
 
+```
 
+
+
+```{r, message=FALSE}
 ##################  Odds Ratio  PESO.dif324m.cat      --------
 # OR's cru
 outcome<-"PESO.dif324m.cat"
 
-# model<-extreure_model_logistic("grup",y=outcome,taulavariables = conductor_variables,dades=dades,valor_outcome = "Yes")
+model<-extreure_model_logistic("grup",y=outcome,taulavariables = conductor_variables,dades=dades,valor_outcome = "Yes")
 
-formula.LOGIT(x="grup_ajustat", y=outcome, taulavariables = conductor_variables) %>% 
-  extreure_OR(dades=dades) %>% tail(2) %>% 
-  kable(caption = paste0("Odds ratio reducción de peso ajustados por: ",paste0(extreure.variables("grup",conductor_variables),collapse = ", "),digits = 3)) %>%   
-  kableExtra::kable_styling()
+model$taula_OR %>% head(2) %>%
+  kable(caption = paste0("OR ajustados por:",paste0(extreure.variables("grup",conductor_variables),collapse = ", ")),digits = 3) %>%kableExtra::kable_styling()
+
 
 # ORs ajustat
-# model<-extreure_model_logistic("grup_ajustat",y=outcome,taulavariables = conductor_variables,dades=dades,valor_outcome = "Yes")
+model<-extreure_model_logistic("grup_ajustat",y=outcome,taulavariables = conductor_variables,dades=dades,valor_outcome = "Yes")
 
-formula.LOGIT(x="grup_ajustat", y=outcome, taulavariables = conductor_variables) %>% 
-  extreure_OR(dades=dades) %>% tail(2) %>% 
+model$taula_OR %>% head(2) %>% 
   kable(caption = paste0("OR ajustados por:",paste0(extreure.variables("grup_ajustat",conductor_variables),collapse = ", ")),digits = 3) %>%   
   kableExtra::kable_styling()
 
 
+
+
+```
+
+
+
+```{r, message=FALSE}
 ##################  Odds Ratio  PESHB.dif324m.cat      --------
 # OR's cru
 outcome<-"PESHB.dif324m.cat"
 
-# model<-extreure_model_logistic("grup",y=outcome,taulavariables = conductor_variables,dades=dades,valor_outcome = "Yes")
-
-
-formula.LOGIT(x="grup_ajustat", y=outcome, taulavariables = conductor_variables) %>% 
-  extreure_OR(dades=dades) %>% tail(2)
-  kable(caption = paste0("Odds ratio reducción de peso y HBA1C ajustados por: ",paste0(extreure.variables("grup",conductor_variables),collapse = ", "),digits = 3)) %>%   
+model<-extreure_model_logistic("grup",y=outcome,taulavariables = conductor_variables,dades=dades,valor_outcome = "Yes")
+model$taula_OR %>% head(2) %>% 
+  kable(caption = paste0("Odds ratio reducción de peso y HBA1C ajustados por:",paste0(extreure.variables("grup",conductor_variables),collapse = ", "),digits = 3)) %>%   
   kableExtra::kable_styling()
 
-# ORs ajustat
-# model<-extreure_model_logistic("grup_ajustat",y=outcome,taulavariables = conductor_variables,dades=dades,valor_outcome = "Yes")
-
-formula.LOGIT(x="grup_ajustat", y=outcome, taulavariables = conductor_variables) %>% 
-  extreure_OR(dades=dades) %>% tail(2) %>% 
-  kable(caption = paste0("OR ajustados por:",paste0(extreure.variables("grup_ajustat",conductor_variables),collapse = ", ")),digits = 3) %>%   
+# Ajustat 
+model<-extreure_model_logistic("grup_ajustat",y=outcome,taulavariables = conductor_variables,dades=dades,valor_outcome = "Yes")
+model$taula_OR %>% head(2) %>% 
+  kable(caption = paste0("Odds ratio reducción de peso y HBA1C ajustados por:",paste0(extreure.variables("grup_ajustat",conductor_variables),collapse = ", "),digits = 3)) %>%   
   kableExtra::kable_styling()
-
-
-
-
-
 ```
 
 # Secondary objectives
@@ -207,7 +198,7 @@ formula.LOGIT(x="grup_ajustat", y=outcome, taulavariables = conductor_variables)
 - To estimate the mean reduction of HbA1c and body weight separately after the addition of an SU, a DPP-4i or an SGLT-2i in patients with DM2 treated with metformin and insufficient glycemic control (up to 24 months).
 
 
-```{r}
+```{r,message=FALSE}
 
 # Outcomes continus 
 
@@ -233,7 +224,7 @@ model$coef %>% kable(caption=paste0("Betas",model$caption),digits=3) %>%
 - To assess the average reduction in systolic blood pressure after the addition of an SU, a DPP-4i or an SGLT-2i in patients with DM2 treated with metformin and insufficient glycemic control.
 
 
-```{r}
+```{r, message=FALSE}
 formula<-formula_compare("table6",y="grup",taulavariables = conductor_variables)
 descrTable(formula,dades) %>% 
   export2md(caption = "Secondary variables related to treatment efficacy")
@@ -292,9 +283,29 @@ descrTable(formula,dades) %>%
 
 ```
 
-- To assess  the percentage of suspensions/dropouts of treatment at 6, 12 and 24 months (persistence of treatment).
+- To assess  the percentage of suspensions/dropouts of treatment at 6, 12 and 24 months.
 
 ```{r}
+
+formula<-formula_compare("table9",y="grup",taulavariables = conductor_variables)
+descrTable(formula,dades) %>% 
+  export2md(caption = "Percentage of suspensions/dropouts of treatment at 6, 12 and 24")
+
+# descrTable(STOP.FD_surv~grup,data=dades)
+# descrTable(STOP.FD_surv~grup,data=dades, show.ratio = T)
+
+survminer::ggsurvplot(survfit(STOP.FD_surv ~ grup, data = dades), data = dades,
+                  main = "Survival curve",
+                  title= "Suspensions/dropouts during follow-up before 24 months",
+                  size = 0.5,
+                  ylim = c(0,1),
+                  xlim = c(0,730),
+                  break.x.by=180,
+                  xlab = "Time in days",
+                  risk.table = F,
+                  censor.shape="|", censor.size = 1)
+
+
 
 ```
 
@@ -303,15 +314,15 @@ descrTable(formula,dades) %>%
 
 ```{r}
 
-descrTable(EV.AMPU.surv~grup,data=dades, show.ratio = T)
-descrTable(EV.CETO.surv~grup,data=dades, show.ratio = T)
-descrTable(EV.FRAC.surv~grup,data=dades, show.ratio = T)
-descrTable(EV.GI.surv~grup,data=dades, show.ratio = T)
-descrTable(EV.NEOGAST.surv~grup,data=dades, show.ratio = T)
-descrTable(EV.RAD.surv~grup,data=dades, show.ratio = T)
-descrTable(EV.RAH.surv~grup,data=dades, show.ratio = T)
-descrTable(EV.RAHEM.surv ~grup,data=dades, show.ratio = T)
-descrTable(EV.RAR.surv~grup,data=dades, show.ratio = T)
+descrTable(EV.AMPU.surv~grup,data=dades, show.ratio = F,show.p.overall = F) %>% export2md()
+descrTable(EV.CETO.surv~grup,data=dades, show.ratio = F,show.p.overall = F) %>% export2md()
+descrTable(EV.FRAC.surv~grup,data=dades, show.ratio = F,show.p.overall = F) %>% export2md()
+descrTable(EV.GI.surv~grup,data=dades, show.ratio = F,show.p.overall = F) %>% export2md()
+descrTable(EV.NEOGAST.surv~grup,data=dades, show.ratio = F,show.p.overall = F) %>% export2md()
+descrTable(EV.RAD.surv~grup,data=dades, show.ratio = F,show.p.overall = F) %>% export2md()
+descrTable(EV.RAH.surv~grup,data=dades, show.ratio = F,show.p.overall = F) %>% export2md()
+descrTable(EV.RAHEM.surv ~grup,data=dades, show.ratio = F,show.p.overall = F) %>% export2md()
+descrTable(EV.RAR.surv~grup,data=dades, show.ratio = F,show.p.overall = F) %>% export2md()
 
 
 ```

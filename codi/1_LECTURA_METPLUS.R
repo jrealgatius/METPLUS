@@ -10,6 +10,8 @@
 #
 # Lectura de dades     
 
+gc()
+
 memory.size(max=130685)
 #
 #   SOURCE
@@ -24,7 +26,11 @@ devtools::source_url(link_source)
 # N test mostra a seleccionar  (Nmostra=Inf)
 
 # Nmostra=Inf  # Seria tota la mostra
-Nmostra=100000
+Nmostra=Inf
+
+# Parametre discontinuitat/stop tractament:
+gap_dies<-91
+
 
 # Conductor cataleg 
 fitxer_cataleg<-"cataleg_met.xls"
@@ -186,52 +192,93 @@ farmacs_grups<-
   ungroup(idp) %>% 
   mutate(grup=case_when(data_index==FD.IDPP4~"IDPP4",
                    data_index==FD.iSGLT2~"ISGLT2",
-                   data_index==FD.SU~"SU"
-                   ))
+                   data_index==FD.SU~"SU"))
+
 
 dt_grups<-farmacs_grups %>% select(idp,dtindex=data_index,FD.IDPP4,FD.iSGLT2,FD.SU,grup)
 dt_index<-dt_grups %>% select(idp,dtindex)
 
 
-# 2.6. Generar data de final de tractament iniciat (havent eliminat discontinuitats de N dies (gap_dies=60))
+# 2.6. Generar data de final de tractament iniciat ---------------------
+
+# (Eliminar discontinuitats de N dies i solapaments (gap_dies=91))
 
 
-# 2.6.1. Tenint en compte facturació + dispensació 
+# 2.6.1. Tenint en compte facturació + dispensació  -----------------
+
+# Selecciono historic de farmacs facturats/prescrits dels grups a estudi i recalculo data fi
+conductor_grups<-conductor_variables %>% filter(GRUP=="IDPP4" | GRUP=="iSGLT2" | GRUP=="SU") %>% 
+  select(cod,GRUP) %>% unique()
 
 # Formatar Fitxer amb: dataindex (date), idp, grup(farmac), dat(date),datafi(date)
+FX.FACTURATS_PRESCRITS_GRUPS<- FX.FACTURATS_PRESCRITS %>% 
+  dplyr::semi_join(dt_index,by="idp") %>% 
+  dplyr::semi_join(conductor_grups,by="cod") %>% 
+  dplyr::left_join(conductor_grups,by="cod")  %>% 
+  mutate(dat=lubridate::ymd(paste0(as.character(dat),"15")),datafi=dat+(30*env)) 
 
-FX.FACTURATS_PRESCRITS_GRUPS<-
-  dt_index %>% 
-  left_join(FX.FACTURATS_PRESCRITS,by="idp") %>% 
-  dplyr::semi_join(conductor_variables %>% filter(GRUP=="IDPP4" | GRUP=="iSGLT2" | GRUP=="SU"),by="cod") %>% 
-  dplyr::left_join(select(conductor_variables,cod,GRUP),by="cod") %>% 
-  mutate(dat=lubridate::ymd(paste0(as.character(dat),"15")),datafi=dat+(30*env))
+# Eliminar gaps i solapaments per grups agregar_solapaments_gaps() ----------
 
-# Eliminar gaps i solapaments per grups agregar_solapaments_gaps()
-gap_dies<-160
-# farmacs_dt_sense_gaps<-agregar_solapaments_gaps(dt=FX.FACTURATS_PRESCRITS_GRUPS,id="idp",datainici = "dat",datafinal="datafi",gap=gap_dies)
+# agregar_solapaments_gaps(FX.FACTURATS_PRESCRITS_GRUPS %>% filter(GRUP=="IDPP4"),id="idp",datainici = "dat",datafinal="datafi",gap=gap_dies)
 
 farmacs_dt_sense_gaps<-FX.FACTURATS_PRESCRITS_GRUPS %>% 
   split(.$GRUP) %>% 
   map(~agregar_solapaments_gaps(dt=.x,id="idp",datainici = "dat",datafinal="datafi",gap=gap_dies)) %>% 
   map_df(~bind_rows(.),.id="GRUP")
 
-# Verificar solapamenta 
+# Verificar solapamenta  n=10 pre-post  ------
+set.seed(125)
+MAP_ggplot_univariant(FX.FACTURATS_PRESCRITS_GRUPS %>% filter(GRUP=="IDPP4"),datainicial = "dat",datafinal = "datafi",id="idp",Nmostra = 10)
 set.seed(125)
 MAP_ggplot_univariant(farmacs_dt_sense_gaps %>% filter(GRUP=="IDPP4"),datainicial = "dat",datafinal = "datafi",id="idp",Nmostra = 10)
 
-# Capturar primera datafi per pacient i grup serà el primer stop d'aquell tractament 
-farmacs_STOP<-
+# Generar primera data STOP per grup de farmacs 
+# durant tot el seguiment (primer stop per tractament)
+
+dt_farmacs_STOP<-
   farmacs_dt_sense_gaps %>% 
   group_by(idp,GRUP) %>% 
   slice(1) %>% 
   ungroup() %>% 
-  select(idp,GRUP,datafi) %>% 
-  spread(GRUP,datafi)
+  select(idp,STOP=GRUP,datafi) %>% 
+  spread(STOP,datafi,sep = ".") %>% 
+  left_join(dt_index,by="idp")
 
 
 
-# 2.6.2. Tenint en compte només facturació
+# 2.6.1. Tenint en compte només facturació
+
+# Formatar Fitxer amb: dataindex (date), idp, grup(farmac), dat(date),datafi(date)
+FX.FACTURATS_GRUPS<- FX.FACTURATS %>% 
+  dplyr::semi_join(dt_index,by="idp") %>% 
+  dplyr::semi_join(conductor_grups,by="cod") %>% 
+  dplyr::left_join(conductor_grups,by="cod")  %>% 
+  mutate(dat=lubridate::ymd(paste0(as.character(dat),"15")),datafi=dat+(30*env)) 
+
+
+farmacs_dt_sense_gaps<-FX.FACTURATS_GRUPS %>% 
+  split(.$GRUP) %>% 
+  map(~agregar_solapaments_gaps(dt=.x,id="idp",datainici = "dat",datafinal="datafi",gap=gap_dies)) %>% 
+  map_df(~bind_rows(.),.id="GRUP")
+
+# Verificar solapamenta  n=10 pre-post  ------
+set.seed(125)
+MAP_ggplot_univariant(FX.FACTURATS_GRUPS %>% filter(GRUP=="IDPP4"),datainicial = "dat",datafinal = "datafi",id="idp",Nmostra = 10)
+set.seed(125)
+MAP_ggplot_univariant(farmacs_dt_sense_gaps %>% filter(GRUP=="IDPP4"),datainicial = "dat",datafinal = "datafi",id="idp",Nmostra = 10)
+
+# Generar primera data STOP per grup de farmacs 
+# durant tot el seguiment (primer stop per tractament)
+
+dt_farmacs_FD_STOP<-
+  farmacs_dt_sense_gaps %>% 
+  group_by(idp,GRUP) %>% 
+  slice(1) %>% 
+  ungroup() %>% 
+  select(idp,STOP.FD=GRUP,datafi) %>% 
+  spread(STOP.FD,datafi,sep = ".") %>% 
+  left_join(dt_index,by="idp")
+
 
 # 3. Agregació de variables en data index  -------------------
 # 3.1.Agrego en data index MET (Any previ) ----------------------
@@ -266,6 +313,7 @@ dt_events<-agregar_problemes(dt=PROBLEMES_total,bd.dindex=dt_index,dt.agregadors
 rm(PROBLEMES_total)
 # 3.10.Lectura + Agregació de variables basals  ---------------------
 VARIABLES<-Nmostra %>% LLEGIR.VARIABLES() %>% select(idp,cod=agr,dat,val)
+
 dt_variables<-agregar_analitiques(dt=VARIABLES,bd.dindex=dt_index,finestra.dies=c(-365,0)) 
 
 # 3.11.Agregació de variables seguiment (3-24 mesos+-: 90-730 dies)  ---------------------
@@ -317,6 +365,8 @@ dt_fx.AD<-formatar_dtindex(dt_fx.AD)
 dt_fx.canvis<-formatar_dtindex(dt_fx.canvis)
 dt_fx.Nenvas<-formatar_dtindex(dt_fx.Nenvas)
 dt_fx.temps<-formatar_dtindex(dt_fx.temps)
+dt_farmacs_STOP<-formatar_dtindex(dt_farmacs_STOP)
+dt_farmacs_FD_STOP<-formatar_dtindex(dt_farmacs_FD_STOP)
 
 dt_problemes<-formatar_dtindex(dt_problemes)
 dt_problemes_NIV2<-formatar_dtindex(dt_problemes_NIV2)
@@ -346,6 +396,8 @@ BDTOTAL<-dt_grups %>%
   left_join(dt_fx.canvis, by=c("idp","dtindex")) %>% 
   left_join(dt_fx.Nenvas, by=c("idp","dtindex")) %>% 
   left_join(dt_fx.temps, by=c("idp","dtindex")) %>% 
+  left_join(dt_farmacs_STOP, by=c("idp","dtindex")) %>% 
+  left_join(dt_farmacs_FD_STOP, by=c("idp","dtindex")) %>% 
   left_join(dt_problemes, by=c("idp","dtindex")) %>%
   left_join(dt_problemes_NIV2, by=c("idp","dtindex")) %>% 
   left_join(dt_variables, by=c("idp","dtindex")) %>% 
@@ -361,7 +413,6 @@ BDTOTAL<-dt_grups %>%
   left_join(dt_variables324m, by=c("idp","dtindex")) %>%  
   left_join(dt_events, by=c("idp","dtindex")) %>% 
   left_join(dt_fx_Radversos, by=c("idp","dtindex"))
-
 
 write.csv2(names(BDTOTAL),file="variables.csv")
 

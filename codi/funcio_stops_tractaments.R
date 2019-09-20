@@ -61,95 +61,32 @@ agregar_solapaments_gaps<-function(dt=dades,id="idp",datainici="data",datafinal=
 
 
 
-dades_test<-tibble::tibble(idp=c(1,1,1,2,2,3,3,3),
-                           data=c("20190101","20190110","20190105","20190102","20190115","20190109","20190115","20190117"),
-                           datafi=c("20190103","20190115","20190125","20190114","20190120","20190110","20190120","20190119"),
-                           grup=c("A","A","A","B","B","B","B","B"))
+dades_test<-tibble::tibble(idp=c(1,1,1,1,2,2,3,3,3,3,3),
+                           data=c("20181201","20190101","20190110","20190105","20190102","20190120","20190109","20190115","20190117","20190101","20181101"),
+                           datafi=c("20190201","20190103","20190115","20190125","20190114","20190130","20190110","20190120","20190119","20190201","20181201"),
+                           grup=c("B","A","A","A","B","B","B","B","B","B","B"))
 
 dades_test<-dades_test %>% mutate(data2=as.Date(data,format="%Y%m%d"),datafi2=as.Date(datafi,format="%Y%m%d"))
 
-MAP_ggplot(dades=dades_test,datainicial = "data2",datafinal = "datafi2",id="idp")
 
-dades_test
-dades_noves<-agregar_solapaments_gaps(dt=dades_test,id="idp",datainici="data2",datafi="datafi2",gap=2)
-dades_noves
-
-MAP_ggplot(dades=dades_noves,datainicial = "data2",datafinal = "datafi2",id="idp")
-
-MAP_ggplot_univariant(dades=dades_noves,datainicial = "data2",datafinal = "datafi2",id="idp")
-
-MAP_ggplot_univariant(dades=dades_test,datainicial = "data2",datafinal = "datafi2",id="idp")
-
-# Dibuixa mapa temporal univariant per verificar solapaments
-MAP_ggplot_univariant<-function(dades=dt,datainicial="data",datafinal="datafi",id="idp_temp") {
-  
-  # dades=dades_test
-  # datainicial="data"
-  # datafinal="datafi"
-  # id="idp"
-
-  # Conversió a Sym per evaluació  
-  datainicial<-rlang::sym(datainicial)
-  datafinal<-rlang::sym(datafinal)
-  id<-rlang::sym(id)
-
-  # Calculo dies de duració  
-  dades<-dades %>%  mutate(dia0=!!datainicial,diaf=!!datafinal,days_duration=diaf-dia0)
-  
-  # Gráfico el tema
-  ggplot2::ggplot(dades,ggplot2::aes(x =dia0,y =!!id))+
-    ggplot2::geom_segment(ggplot2::aes(x =dia0, xend=diaf, y =!!id, yend = !!id),arrow =  ggplot2::arrow(length = ggplot2::unit(0.03, "npc"))) +
-    ggplot2::geom_point(ggplot2::aes(dia0, !!id)) + 
-    ggplot2::geom_text(vjust = -0.5, hjust=0, size = 3, ggplot2::aes(x =dia0, y = !!id,label = paste(round(days_duration, 2), "days")))+
-    ggplot2::scale_colour_brewer(palette = "Set1")+
-    ggplot2::theme(legend.position="top",legend.background =  ggplot2::element_rect(fill="gray80",size=1, linetype="solid", colour ="black"))
-}
+MAP_ggplot_univariant(dades_test,datainicial = "data2",datafinal = "datafi2",id="idp",Nmostra = Inf)
+dades_agr<-agregar_solapaments_gaps(dt=dades_test,id="idp",datainici = "data2",datafinal="datafi2",gap=30)
+MAP_ggplot_univariant(dades_agr,datainicial = "data2",datafinal = "datafi2",id="idp",Nmostra = Inf)
 
 
 
-MAP_ggplot2<-function(dades=dt,datainicial="data",datafinal="datafi",id="idp_temp",grup_color=NA,grup_linea=NA,lim_inf=-Inf,lim_sup=Inf) {
 
-  # dades=dades_test
-  # datainicial="data"
-  # datafinal="datafi"
-  # id="idp"
 
-  # grup_color="sexe"
-  # grup_linea="sc_bcn"
-  # lim_inf=-Inf
-  # lim_sup=+Inf
-  
-  if (is.na(grup_linea)) dades<- dades %>% mutate(Overall="Overall")
-  if (is.na(grup_linea)) grup_linea<- "Overall"
-  
-  if (is.na(grup_color)) dades<- dades %>% mutate(Overall2="Overall2")
-  if (is.na(grup_color)) grup_color<- "Overall2"
-  
-  # # Configuro limits finestra
-  if (lim_inf==-Inf) porca1<-min(dades %>% pull(datainicial))
-  if (lim_sup==+Inf) porca2<-max(dades %>% pull(datafinal))
-  # # 
-  if (lim_inf!=-Inf) porca1<-lim_inf
-  if (lim_sup!=+Inf) porca2<-lim_sup
-  
-  # Conversió a Sym per evaluació  
-  datainicial<-rlang::sym(datainicial)
-  datafinal<-rlang::sym(datafinal)
-  id<-rlang::sym(id)
-  grup_color<-rlang::sym(grup_color)
-  grup_linea<-rlang::sym(grup_linea)
-  
-  # Calculo dies de duració  
-  dades<-dades %>%  mutate(dia0=!!datainicial,diaf=!!datafinal,days_duration=diaf-dia0)
-  
-  # Gráfico el tema
-  ggplot2::ggplot(dades,ggplot2::aes(x =dia0,y =!!id, color=!!grup_color,group=!!grup_linea,linetype=!!grup_linea))+
-    ggplot2::geom_segment(ggplot2::aes(x =dia0, xend=diaf, y =!!id, yend = !!id),arrow =  ggplot2::arrow(length = ggplot2::unit(0.03, "npc"))) +
-    ggplot2::geom_point(ggplot2::aes(dia0, !!id)) + 
-    ggplot2::geom_text(vjust = -0.5, hjust=0, size = 3, ggplot2::aes(x =dia0, y = !!id,label = paste(round(days_duration, 2), "days")))+
-    ggplot2::scale_colour_brewer(palette = "Set1")+
-    ggplot2::xlim(porca1,porca2)+
-    ggplot2::theme(legend.position="top",legend.background =  ggplot2::element_rect(fill="gray80",size=1, linetype="solid", colour ="black"))
-  
-}
+# Filtrar per registres que inicien prescripció fora de la finestra (24 mesos)
+# FX.FACTURATS_PRESCRITS_GRUPS<-FX.FACTURATS_PRESCRITS_GRUPS %>% filter(dat<=dtindex+finestra)
+
+FX.FACTURATS_PRESCRITS_GRUPS<-FX.FACTURATS_PRESCRITS_GRUPS %>% 
+  filter(idp=="00a1c12dce4f3e85c317c84bfd0f858ea7d3c68a" & GRUP=="IDPP4") 
+
+gap_dies<-35
+farmacs_dt_sense_gaps<-agregar_solapaments_gaps(FX.FACTURATS_PRESCRITS_GRUPS,id="idp",datainici = "dat",datafinal="datafi",gap=gap_dies)
+
+MAP_ggplot_univariant(FX.FACTURATS_PRESCRITS_GRUPS %>% filter(GRUP=="IDPP4"),datainicial = "dat",datafinal = "datafi",id="idp",Nmostra = 1)
+MAP_ggplot_univariant(farmacs_dt_sense_gaps ,datainicial = "dat",datafinal = "datafi",id="idp",Nmostra = 1)
+
 
