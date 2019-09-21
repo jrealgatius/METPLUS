@@ -238,7 +238,7 @@ dades<-dades %>% mutate (
   COLTOT.dif324m=COLTOT.valor-COLTOT.valor324m,
   TG.valor.dif324m=TG.valor-TG.valor324m) 
 
-# Outcomes Adherencia / Suspensions  #####
+# 7.1. Outcomes Adherencia / Suspensions  #####
 
 # Recode missings de dispensació a 0
 dades<-dades %>% mutate_at(vars(starts_with("NenvasTX.")), 
@@ -289,16 +289,16 @@ dades<-dades %>% mutate(
 dades$STOP.FD_surv<-Surv(dades$temps.STOP.FD,dades$temps.STOP.FD>0)
 
 
-# Calcular datafi OT On treatment (datafiOT)  ----------------
+# 7.2. Calcular datafi OT On treatment (datafiOT)  ----------------
 # Definition of follow-up period and premature discontinuation
 # Death, the switch or addition of a new antidiabetic treatment, last billing of study drugs before 24 months after prescription, transfers to non-ICS centers.
 
 # CanviTx (data minima de totes)
 dades<-dades %>% mutate(datafiOT= case_when(
   grup=="IDPP4" ~ pmin(STOP.FD.IDPP4,CANVITX.iSGLT2,CANVITX.SU,na.rm=T),
-  grup=="ISGLT2" ~ pmin(STOP.FD.IDPP4,CANVITX.IDPP4,CANVITX.SU,na.rm=T),
-  grup=="SU" ~ pmin(STOP.FD.IDPP4,CANVITX.iSGLT2,CANVITX.IDPP4,na.rm=T)))
-  
+  grup=="ISGLT2" ~ pmin(STOP.FD.iSGLT2,CANVITX.IDPP4,CANVITX.SU,na.rm=T),
+  grup=="SU" ~ pmin(STOP.FD.SU,CANVITX.iSGLT2,CANVITX.IDPP4,na.rm=T)))
+
 # Actualitzar maxim 24 mesos o exitus/trasllat 
 dades<-dades %>% mutate(datafiOT= case_when(
   datafiOT-dtindex>=365 ~ dtindex+365,
@@ -316,7 +316,7 @@ descrTable(grup~STOP24m.FD+STOP12m.FD+STOP6m.FD, data=dades)
 
 
 
-#   7.1. Calcular events coma Surv: ---------------
+# 7.3. Calcular events coma Surv: ---------------
 
 
 # Funció generar_Surv Generar columna Surv a partir de dades, event ("20150531"), dtindex, sortida(20171231), 
@@ -356,11 +356,11 @@ dades_surv<-map(llista_events,~generar_Surv(dt=dades,.)) %>%
 dades<-dades %>% cbind(dades_surv)
 
 
-# 9. Labels  -------------
+# 8. Labels  -------------
 dades<-etiquetar(dades,taulavariables = conductor_variables,camp_descripcio = "descripcio")
 dades<-etiquetar_valors(dades,variables_factors = conductor_variables,fulla="value_labels",camp_etiqueta = "etiqueta")
 
-# 8. FActoritzar -------------
+# 9. FActoritzar -------------
 dades<-factoritzar.NO.YES(dades,columna = "factoritzar.yes.no",taulavariables = conductor_variables)
 dades<-factoritzar(dades,variables=extreure.variables("factoritzar",conductor_variables))
 

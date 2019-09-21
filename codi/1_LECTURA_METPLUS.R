@@ -26,10 +26,13 @@ devtools::source_url(link_source)
 # N test mostra a seleccionar  (Nmostra=Inf)
 
 # Nmostra=Inf  # Seria tota la mostra
-Nmostra=Inf
+Nmostra=100000
 
 # Parametre discontinuitat/stop tractament:
-gap_dies<-91
+gap_dies<-61
+
+# Parametre d'analisis OT / No OT 
+analisis_OT<-F
 
 
 # Conductor cataleg 
@@ -246,7 +249,7 @@ dt_farmacs_STOP<-
 
 
 
-# 2.6.1. Tenint en compte només facturació
+# 2.6.1. Tenint en compte només facturació  --------------
 
 # Formatar Fitxer amb: dataindex (date), idp, grup(farmac), dat(date),datafi(date)
 FX.FACTURATS_GRUPS<- FX.FACTURATS %>% 
@@ -280,7 +283,8 @@ dt_farmacs_FD_STOP<-
   left_join(dt_index,by="idp")
 
 
-# 3. Agregació de variables en data index  -------------------
+# 3. Agregar en data index  -------------------
+
 # 3.1.Agrego en data index MET (Any previ) ----------------------
 dt_fx.met<-agregar_facturacio(dt=FX.FACTURATS_PRESCRITS,finestra.dies=c(-365,0),dt.agregadors=conductor_variables,bd.dindex=dt_index,prefix="F.",camp_agregador="MET", agregar_data=F)
 
@@ -296,23 +300,54 @@ dt_fx.Nenvas<-agregar_facturacio(dt=FX.FACTURATS,finestra.dies=c(0,+730),dt.agre
 # 3.5. Agregació de temps en dies de prescripcio POST (+24 mesos)    ------------------- 
 dt_fx.temps<-agregar_prescripcions(dt=FX.PRESCRITS_GRUPS,finestra.dies=c(0,+730),dt.agregadors=conductor_variables,bd.dindex=dt_index,prefix="tempsTX.",camp_agregador="GRUP", agregar_data=F)
 
-# 3.6. Agregació de Efectes adversos (tractaments) POST 
-REACCIONS_ADV<-Nmostra %>% LLEGIR.REACCIONS_ADV() %>%  mutate(dbaixa="20191212")
+# 
 
+# 3.6. Generar data STOP (datafiOT) ----------------
+# Generar data stop en funció de primer STOP / primer canvi TX per cada grup (Segons dispensació)
+
+# analisis_OT<-T
+
+if (analisis_OT==T) {
+  
+  dt_data_stop<-select(dt_grups,idp,grup) %>% 
+    left_join(dt_farmacs_FD_STOP %>% 
+                full_join(select(dt_fx.canvis,-dtindex),by="idp"),by="idp")%>% 
+    mutate(datafiOT= case_when(
+      grup=="IDPP4" ~ pmin(STOP.FD.IDPP4,CANVITX.iSGLT2,CANVITX.SU,na.rm=T),
+      grup=="ISGLT2" ~ pmin(STOP.FD.iSGLT2,CANVITX.IDPP4,CANVITX.SU,na.rm=T),
+      grup=="SU" ~ pmin(STOP.FD.SU,CANVITX.iSGLT2,CANVITX.IDPP4,na.rm=T)),
+      datafiOT=ifelse(is.na(datafiOT),dtindex,datafiOT)) %>% 
+    mutate (datafiOT=lubridate::as_date(datafiOT)) %>% select(idp,datafiOT)
+} else {
+  dt_data_stop<-select(dt_grups,idp,grup) %>% 
+    mutate(datafiOT=lubridate::ymd(20181231)) %>% 
+    select(idp,datafiOT)
+}
+
+# 3.7. Agregació de Efectes adversos (tractaments) POST ----------
+# lectura/neteja
+REACCIONS_ADV<-Nmostra %>% LLEGIR.REACCIONS_ADV() %>%  mutate(dbaixa="20191212") %>% 
+  left_join(dt_data_stop,by="idp") %>% filter(lubridate::ymd(dat)<=datafiOT)
+
+# Agregació
 dt_fx_Radversos<-agregar_prescripcions(dt=REACCIONS_ADV,bd.dindex=dt_index,dt.agregadors = conductor_variables,finestra.dies = c(1,+730),prefix="RADV.",camp_agregador="REAC_ADV_FARMACO",agregar_data=T)
 
-# 3.7. Agregació de problemes basals I   -----------------
+# 3.8. Agregació de problemes basals I   -----------------
 dt_problemes<-agregar_problemes(dt=PROBLEMES_total,bd.dindex=dt_index,dt.agregadors=conductor_variables,finestra.dies=c(-Inf,0),prefix="DG.",camp_agregador="agr") 
 
-# 3.8. Agregació de problemes basals II  -----------------
+# 3.9. Agregació de problemes basals II  -----------------
 dt_problemes_NIV2<-agregar_problemes(dt=PROBLEMES_total,bd.dindex=dt_index,dt.agregadors=conductor_variables,finestra.dies=c(-Inf,0),prefix="DG.",camp_agregador="agr2") 
 
-# 3.9. Agregació de events post (+24 MESOS)  -----------------
+# 3.10. Agregació de events post (+24 MESOS)  -----------------
+PROBLEMES_total<-PROBLEMES_total %>% left_join(dt_data_stop,by="idp") %>% filter(lubridate::ymd(dat)<=datafiOT)
 dt_events<-agregar_problemes(dt=PROBLEMES_total,bd.dindex=dt_index,dt.agregadors=conductor_variables,finestra.dies=c(1,730),prefix="EV.",camp_agregador="EVENT_DG") 
 
 rm(PROBLEMES_total)
-# 3.10.Lectura + Agregació de variables basals  ---------------------
-VARIABLES<-Nmostra %>% LLEGIR.VARIABLES() %>% select(idp,cod=agr,dat,val)
+# 3.11.Lectura + Agregació de variables basals  ---------------------
+
+# lectura i neteja de variables segons dataindex
+VARIABLES<-Nmostra %>% LLEGIR.VARIABLES() %>% select(idp,cod=agr,dat,val) %>% 
+  left_join(dt_data_stop,by="idp") %>% filter(lubridate::ymd(dat)<=datafiOT) 
 
 dt_variables<-agregar_analitiques(dt=VARIABLES,bd.dindex=dt_index,finestra.dies=c(-365,0)) 
 
@@ -331,7 +366,9 @@ dt_variables6m<-agregar_analitiques(dt=VARIABLES,bd.dindex=dt_index,finestra.die
 rm(VARIABLES)
 
 # 3.15.Lectura i agregació de clíniques basals  ---------------------
-CLINIQUES<-Nmostra %>% LLEGIR.CLINIQUES() %>% select(idp,cod=agr,dat,val)
+CLINIQUES<-Nmostra %>% LLEGIR.CLINIQUES() %>% select(idp,cod=agr,dat,val) %>% 
+  left_join(dt_data_stop,by="idp") %>% filter(lubridate::ymd(dat)<=datafiOT) 
+
 dt_cliniques<-agregar_analitiques(dt=CLINIQUES,bd.dindex=dt_index,finestra.dies=c(-365,0)) 
 
 # 3.16.Agregació de clíniques seguiment (3-24 mesos+-: 90-730 dies)  ---------------------
@@ -348,7 +385,9 @@ dt_cliniques6m<-agregar_analitiques(dt=CLINIQUES,bd.dindex=dt_index,finestra.die
 rm(CLINIQUES)
 
 # 3.20.Agregació de tabac  ---------------------
-TABAC<-Nmostra %>% LLEGIR.TABAC %>% mutate(cod="tab")
+TABAC<-Nmostra %>% LLEGIR.TABAC %>% mutate(cod="tab") %>% 
+  left_join(dt_data_stop,by="idp") %>% filter(lubridate::ymd(dat)<=datafiOT) 
+
 dt_tabac<-agregar_analitiques(dt=TABAC,bd.dindex =dt_index,finestra.dies=c(-Inf,0))
 rm(TABAC)
 
