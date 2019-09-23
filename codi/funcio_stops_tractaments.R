@@ -90,3 +90,64 @@ MAP_ggplot_univariant(FX.FACTURATS_PRESCRITS_GRUPS %>% filter(GRUP=="IDPP4"),dat
 MAP_ggplot_univariant(farmacs_dt_sense_gaps ,datainicial = "dat",datafinal = "datafi",id="idp",Nmostra = 1)
 
 
+### Ojo que n'hi ha que tenen dat i datafi la mateixa data (S'haurien d'eliminar)
+
+
+# analisis_OT<-T
+
+if (analisis_OT==T) {
+  
+  dt_data_stop<-select(dt_grups,idp,grup) %>% 
+    left_join(dt_farmacs_FD_STOP %>% 
+                full_join(select(dt_fx.canvis,-dtindex),by="idp"),by="idp")%>% 
+    mutate(datafiOT= case_when(
+      grup=="IDPP4" ~ pmin(STOP.FD.IDPP4,CANVITX.iSGLT2,CANVITX.SU,na.rm=T),
+      grup=="ISGLT2" ~ pmin(STOP.FD.iSGLT2,CANVITX.IDPP4,CANVITX.SU,na.rm=T),
+      grup=="SU" ~ pmin(STOP.FD.SU,CANVITX.iSGLT2,CANVITX.IDPP4,na.rm=T)),
+      datafiOT=ifelse(is.na(datafiOT),dtindex,datafiOT)) %>% 
+    mutate (datafiOT=lubridate::as_date(datafiOT)) %>% select(idp,grup,dtindex,datafiOT)
+} else {
+  dt_data_stop<-select(dt_grups,idp,grup) %>% 
+    mutate(datafiOT=lubridate::ymd(20181231)) %>% 
+    select(idp,datafiOT)
+}
+
+dt_data_stop %>% filter(datafiOT<dtindex)
+
+dt_grups %>% filter(idp=="019e464329f11f97ac5eab29d1cd0f1f62fa34b3")
+dt_farmacs_FD_STOP %>% filter(idp=="019e464329f11f97ac5eab29d1cd0f1f62fa34b3")
+dt_farmacs_STOP %>% filter(idp=="019e464329f11f97ac5eab29d1cd0f1f62fa34b3")
+
+FX.FACTURATS_GRUPS %>% filter(idp=="019e464329f11f97ac5eab29d1cd0f1f62fa34b3")
+FX.PRESCRITS_GRUPS %>% filter(idp=="019e464329f11f97ac5eab29d1cd0f1f62fa34b3")
+FX.FACTURATS_PRESCRITS_GRUPS %>% filter(idp=="019e464329f11f97ac5eab29d1cd0f1f62fa34b3")
+farmacs_dt_sense_gaps %>% filter(idp=="019e464329f11f97ac5eab29d1cd0f1f62fa34b3")
+
+
+dt_data_stop %>% filter(idp=="04ea33a577abb26ac5fa344406df3759629bb403")
+dt_grups %>% filter(idp=="04ea33a577abb26ac5fa344406df3759629bb403")
+dt_farmacs_FD_STOP %>% filter(idp=="04ea33a577abb26ac5fa344406df3759629bb403")
+dt_farmacs_STOP %>% filter(idp=="04ea33a577abb26ac5fa344406df3759629bb403")
+
+FX.FACTURATS_GRUPS %>% filter(idp=="04ea33a577abb26ac5fa344406df3759629bb403")
+FX.PRESCRITS_GRUPS %>% filter(idp=="04ea33a577abb26ac5fa344406df3759629bb403")
+FX.FACTURATS_PRESCRITS_GRUPS %>% filter(idp=="04ea33a577abb26ac5fa344406df3759629bb403")
+farmacs_dt_sense_gaps %>% filter(idp=="04ea33a577abb26ac5fa344406df3759629bb403")
+farmacs_grups %>% filter(idp=="04ea33a577abb26ac5fa344406df3759629bb403")
+
+
+dt_grups %>% filter(idp=="0b177a539555873cde1b7621890cb7085b6bc0a2")
+dt_farmacs_FD_STOP %>% filter(idp=="0b177a539555873cde1b7621890cb7085b6bc0a2")
+dt_farmacs_STOP %>% filter(idp=="0b177a539555873cde1b7621890cb7085b6bc0a2")
+
+FX.FACTURATS_GRUPS %>% filter(idp=="0b177a539555873cde1b7621890cb7085b6bc0a2")
+FX.PRESCRITS_GRUPS %>% filter(idp=="0b177a539555873cde1b7621890cb7085b6bc0a2")
+FX.FACTURATS_PRESCRITS_GRUPS %>% filter(idp=="0b177a539555873cde1b7621890cb7085b6bc0a2")
+farmacs_dt_sense_gaps %>% filter(idp=="0b177a539555873cde1b7621890cb7085b6bc0a2")
+farmacs_grups %>% filter(idp=="0b177a539555873cde1b7621890cb7085b6bc0a2")
+
+FX.PRESCRITS_GRUPS %>% filter(dat==dbaixa) 
+FX.FACTURATS_PRESCRITS_GRUPS %>% filter(env==0) 
+
+
+

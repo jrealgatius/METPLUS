@@ -26,13 +26,13 @@ devtools::source_url(link_source)
 # N test mostra a seleccionar  (Nmostra=Inf)
 
 # Nmostra=Inf  # Seria tota la mostra
-Nmostra=100000
+Nmostra=Inf
 
 # Parametre discontinuitat/stop tractament:
 gap_dies<-61
 
 # Parametre d'analisis OT / No OT 
-analisis_OT<-F
+analisis_OT<-T
 
 
 # Conductor cataleg 
@@ -145,7 +145,7 @@ rm(PROB_EXTRA)
 # 2.1. Llegeixo facturacions / prescripcions  --------------
 
 FX.FACTURATS<-Nmostra %>% LLEGIR.FX.FACTURATS()
-FX.PRESCRITS<-Nmostra %>% LLEGIR.FX.PRESCRITS()
+FX.PRESCRITS<-Nmostra %>% LLEGIR.FX.PRESCRITS() %>% filter(dat!=dbaixa) # elimino els que tenen 0 dies de prescripció
 
 # 2.3. Fusionar ambdues fonts de dades (Prescripcions + facturacions) I formatejar  ----------------
 
@@ -188,14 +188,11 @@ farmacs_grups<-agregar_facturacio(dt=FX.FACTURATS_PRESCRITS,
 # load("metplus_test.Rdata")
 # save.image("metplus_test.Rdata")
 
-farmacs_grups<-
-  farmacs_grups %>% 
-  group_by(idp) %>% 
-  mutate (data_index=min(c(FD.IDPP4,FD.iSGLT2,FD.SU),na.rm = T)) %>% 
-  ungroup(idp) %>% 
-  mutate(grup=case_when(data_index==FD.IDPP4~"IDPP4",
-                   data_index==FD.iSGLT2~"ISGLT2",
-                   data_index==FD.SU~"SU"))
+farmacs_grups<- farmacs_grups %>% 
+  mutate (data_index=pmin(FD.IDPP4,FD.iSGLT2,FD.SU,na.rm = T),
+          grup=case_when(data_index==FD.IDPP4~"IDPP4",
+                         data_index==FD.iSGLT2~"ISGLT2",
+                         data_index==FD.SU~"SU"))
 
 
 dt_grups<-farmacs_grups %>% select(idp,dtindex=data_index,FD.IDPP4,FD.iSGLT2,FD.SU,grup)
@@ -218,7 +215,8 @@ FX.FACTURATS_PRESCRITS_GRUPS<- FX.FACTURATS_PRESCRITS %>%
   dplyr::semi_join(dt_index,by="idp") %>% 
   dplyr::semi_join(conductor_grups,by="cod") %>% 
   dplyr::left_join(conductor_grups,by="cod")  %>% 
-  mutate(dat=lubridate::ymd(paste0(as.character(dat),"15")),datafi=dat+(30*env)) 
+  mutate(dat=lubridate::ymd(paste0(as.character(dat),"15")),datafi=dat+(30*env)) %>% 
+  arrange(idp)
 
 # Eliminar gaps i solapaments per grups agregar_solapaments_gaps() ----------
 
@@ -234,6 +232,7 @@ set.seed(125)
 MAP_ggplot_univariant(FX.FACTURATS_PRESCRITS_GRUPS %>% filter(GRUP=="IDPP4"),datainicial = "dat",datafinal = "datafi",id="idp",Nmostra = 10)
 set.seed(125)
 MAP_ggplot_univariant(farmacs_dt_sense_gaps %>% filter(GRUP=="IDPP4"),datainicial = "dat",datafinal = "datafi",id="idp",Nmostra = 10)
+
 
 # Generar primera data STOP per grup de farmacs 
 # durant tot el seguiment (primer stop per tractament)
@@ -256,7 +255,8 @@ FX.FACTURATS_GRUPS<- FX.FACTURATS %>%
   dplyr::semi_join(dt_index,by="idp") %>% 
   dplyr::semi_join(conductor_grups,by="cod") %>% 
   dplyr::left_join(conductor_grups,by="cod")  %>% 
-  mutate(dat=lubridate::ymd(paste0(as.character(dat),"15")),datafi=dat+(30*env)) 
+  mutate(dat=lubridate::ymd(paste0(as.character(dat),"15")),datafi=dat+(30*env)) %>% 
+  arrange(idp)
 
 
 farmacs_dt_sense_gaps<-FX.FACTURATS_GRUPS %>% 
