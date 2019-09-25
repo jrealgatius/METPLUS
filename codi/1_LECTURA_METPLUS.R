@@ -25,21 +25,19 @@ devtools::source_url(link_source)
 # 0. Inicialització de parametres           -----------------------------
 # N test mostra a seleccionar  (Nmostra=Inf)
 
-# Nmostra=Inf  # Seria tota la mostra
-Nmostra=Inf
+# # Nmostra=Inf  # Seria tota la mostra
+# Nmostra=Inf
+# # Parametre discontinuitat/stop tractament:
+# gap_dies<-61
+# # Parametre d'analisis OT / No OT 
+# analisis_OT<-T
 
-# Parametre discontinuitat/stop tractament:
-gap_dies<-61
-
-# Parametre d'analisis OT / No OT 
-analisis_OT<-T
-
+# fitxersortida
+# fitxersortida<-"BD_METPLUS_V4.rds"
+fitxersortida<-here::here("dades/preparades",fitxersortida)
 
 # Conductor cataleg 
 fitxer_cataleg<-"cataleg_met.xls"
-
-# fitxersortida
-fitxersortida<-here::here("dades/preparades","BD_METPLUS_V4.rds")
 
 # 1. Lectura de Fitxers  --------------------------
 
@@ -349,7 +347,7 @@ rm(PROBLEMES_total)
 VARIABLES<-Nmostra %>% LLEGIR.VARIABLES() %>% select(idp,cod=agr,dat,val) %>% 
   left_join(dt_data_stop,by="idp") %>% filter(lubridate::ymd(dat)<=datafiOT) 
 
-dt_variables<-agregar_analitiques(dt=VARIABLES,bd.dindex=dt_index,finestra.dies=c(-365,0)) 
+dt_variables<-agregar_analitiques(dt=VARIABLES,bd.dindex=dt_index,finestra.dies=c(-365,30)) 
 
 # 3.11.Agregació de variables seguiment (3-24 mesos+-: 90-730 dies)  ---------------------
 dt_variables324m<-agregar_analitiques(dt=VARIABLES,bd.dindex=dt_index,finestra.dies=c(90,730),sufix = c(".valor324m",".dies324m"))
@@ -369,7 +367,7 @@ rm(VARIABLES)
 CLINIQUES<-Nmostra %>% LLEGIR.CLINIQUES() %>% select(idp,cod=agr,dat,val) %>% 
   left_join(dt_data_stop,by="idp") %>% filter(lubridate::ymd(dat)<=datafiOT) 
 
-dt_cliniques<-agregar_analitiques(dt=CLINIQUES,bd.dindex=dt_index,finestra.dies=c(-365,0)) 
+dt_cliniques<-agregar_analitiques(dt=CLINIQUES,bd.dindex=dt_index,finestra.dies=c(-365,30)) 
 
 # 3.16.Agregació de clíniques seguiment (3-24 mesos+-: 90-730 dies)  ---------------------
 dt_cliniques324m<-agregar_analitiques(dt=CLINIQUES,bd.dindex=dt_index,finestra.dies=c(90,730),sufix = c(".valor324m",".dies324m")) 
@@ -388,7 +386,7 @@ rm(CLINIQUES)
 TABAC<-Nmostra %>% LLEGIR.TABAC %>% mutate(cod="tab") %>% 
   left_join(dt_data_stop,by="idp") %>% filter(lubridate::ymd(dat)<=datafiOT) 
 
-dt_tabac<-agregar_analitiques(dt=TABAC,bd.dindex =dt_index,finestra.dies=c(-Inf,0))
+dt_tabac<-agregar_analitiques(dt=TABAC,bd.dindex =dt_index,finestra.dies=c(-Inf,30))
 rm(TABAC)
 
 
