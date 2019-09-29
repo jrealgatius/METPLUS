@@ -1,5 +1,5 @@
 ---
-title: 'eControl Met +: Study about the results of the addition of a sulfonylurea, DPP4 inhibitors or SGLT2 inhibitors as a second antidiabetic drug in patients with diabetes mellitus type 2 in treatment with metformin and insufficient glycemic control'
+title: 'eControl Met +: Study about the results of the addition of a sulfonylurea, DPP4 inhibitors or SGLT2 inhibitors as a second antidiabetic drug in patients with diabetes mellitus type 2 in treatment with metformin and insufficient glycemic control. Analysis: *`r params$analisis`*'
 author: "Jordi Real"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output:
@@ -7,17 +7,24 @@ output:
     df_print: paged
   pdf_document: default
   word_document: default
+params: 
+  arxiu_Rdata: "Output_metplus.RData"
+  analisis: "Intention to treat (ITT)"
 ---
 
-```{r setup, include=FALSE}
 
-knitr::opts_chunk$set(echo = FALSE, message=FALSE, warning=FALSE, include=T,size="huge")
+```{r setup, echo=F, include=F}
 
-rm(list=ls())
-memory.size(max=160000)
+knitr::opts_chunk$set(echo = FALSE, message=FALSE, warning=FALSE, include=F,size="huge")
+
+
+
+# rm(list=ls())
+# memory.size(max=160000)
+
 
 # Parametres
-output_Rdata<-here::here("resultats","Output_metplus.RData")
+# output_Rdata<-here::here("resultats","Output_metplus.RData")
 conductor_variables<-here::here("variables_metplus.xls")
 
 # Càrrega de libreries i funcions  --------------
@@ -26,10 +33,11 @@ library(compareGroups)
 link_source<-paste0("https://github.com/jrealgatius/Stat_codis/blob/master/funcions_propies.R","?raw=T")
 devtools::source_url(link_source)
 
-# Carrega d'objectes
-load(output_Rdata)
+# Carrega Rdata
+load(here::here("resultats",params$arxiu_Rdata))
 
 ```
+
 
 
 
@@ -44,7 +52,7 @@ formula<-formula_compare(x="table1",y="grup",taulavariables = conductor_variable
 taula1.post<-descrTable(formula,data=dades,show.p.overall = F)
 
 # 10.2.Taula events -----------
-formula<-formula_compare(x="table5",y="grup",taulavariables = conductor_variables)
+formula<-formula_compare(x="table5",y="grup",taulavariables = conductor_variables,dt=dades)
 taula_events<-descrTable(formula,data=dades, show.ratio = T)
 
 

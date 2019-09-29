@@ -6,38 +6,28 @@
 #ic)                    [Generació de Cohorts]
 #id)                    [Agregació de variables]
 
-# 0. Directori de treball / càrrega de funcions    --------------
+# 0. Càrrega de funcions / parametres    --------------
 #
-# Lectura de dades     
 
-gc()
-
-memory.size(max=130685)
-#
-#   SOURCE
-rm(list=ls())
-
-# Funcions 
-link_source<-paste0("https://github.com/jrealgatius/Stat_codis/blob/master/funcions_propies.R","?raw=T")
-devtools::source_url(link_source)
-
-# Llista de fitxers :
-# 0. Inicialització de parametres           -----------------------------
-# N test mostra a seleccionar  (Nmostra=Inf)
-
-# # Nmostra=Inf  # Seria tota la mostra
+# #   SOURCE
+# # Càrrego funcions -------------------
+# link_source<-paste0("https://github.com/jrealgatius/Stat_codis/blob/master/funcions_propies.R","?raw=T")
+# devtools::source_url(link_source)
+# 
+# 
+# # Parametres -------------------
 # Nmostra=Inf
 # # Parametre discontinuitat/stop tractament:
-# gap_dies<-61
-# # Parametre d'analisis OT / No OT 
+# gap_dies<-92
+# # Parametre d'analisis OT (TRUE) / ITT (FALSE) 
 # analisis_OT<-T
+# #
+# fitxersortida<-here::here("dades/preparades","BD_METPLUS_V5.rds")
+# # Conductor cataleg 
+# fitxer_cataleg<-"cataleg_met.xls"
+# 
+# 
 
-# fitxersortida
-# fitxersortida<-"BD_METPLUS_V4.rds"
-fitxersortida<-here::here("dades/preparades",fitxersortida)
-
-# Conductor cataleg 
-fitxer_cataleg<-"cataleg_met.xls"
 
 # 1. Lectura de Fitxers  --------------------------
 
@@ -145,6 +135,7 @@ rm(PROB_EXTRA)
 FX.FACTURATS<-Nmostra %>% LLEGIR.FX.FACTURATS()
 FX.PRESCRITS<-Nmostra %>% LLEGIR.FX.PRESCRITS() %>% filter(dat!=dbaixa) # elimino els que tenen 0 dies de prescripció
 
+
 # 2.3. Fusionar ambdues fonts de dades (Prescripcions + facturacions) I formatejar  ----------------
 
 # Copia de prescripcions dels grups d¡'estudi
@@ -226,9 +217,9 @@ farmacs_dt_sense_gaps<-FX.FACTURATS_PRESCRITS_GRUPS %>%
   map_df(~bind_rows(.),.id="GRUP")
 
 # Verificar solapamenta  n=10 pre-post  ------
-set.seed(125)
+set.seed(169)
 MAP_ggplot_univariant(FX.FACTURATS_PRESCRITS_GRUPS %>% filter(GRUP=="IDPP4"),datainicial = "dat",datafinal = "datafi",id="idp",Nmostra = 10)
-set.seed(125)
+set.seed(169)
 MAP_ggplot_univariant(farmacs_dt_sense_gaps %>% filter(GRUP=="IDPP4"),datainicial = "dat",datafinal = "datafi",id="idp",Nmostra = 10)
 
 
@@ -263,9 +254,9 @@ farmacs_dt_sense_gaps<-FX.FACTURATS_GRUPS %>%
   map_df(~bind_rows(.),.id="GRUP")
 
 # Verificar solapamenta  n=10 pre-post  ------
-set.seed(125)
+set.seed(127)
 MAP_ggplot_univariant(FX.FACTURATS_GRUPS %>% filter(GRUP=="IDPP4"),datainicial = "dat",datafinal = "datafi",id="idp",Nmostra = 10)
-set.seed(125)
+set.seed(127)
 MAP_ggplot_univariant(farmacs_dt_sense_gaps %>% filter(GRUP=="IDPP4"),datainicial = "dat",datafinal = "datafi",id="idp",Nmostra = 10)
 
 # Generar primera data STOP per grup de farmacs 
@@ -451,7 +442,7 @@ BDTOTAL<-dt_grups %>%
   left_join(dt_events, by=c("idp","dtindex")) %>% 
   left_join(dt_fx_Radversos, by=c("idp","dtindex"))
 
-write.csv2(names(BDTOTAL),file="variables.csv")
+# write.csv2(names(BDTOTAL),file="variables.csv")
 
 saveRDS(BDTOTAL,fitxersortida)
 

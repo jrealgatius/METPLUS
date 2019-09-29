@@ -2,38 +2,31 @@
 #
 #
 # 0. Directori de treball / càrrega de funcions    --------------
+
+
+
   #
   # Lectura de dades     
   
-  memory.size(max=160685)
+  # memory.size(max=160685)
   #
   #   SOURCE
   
-  rm(list=ls())
+  # rm(list=ls())
+  # 
+  # 
+  # link_source<-paste0("https://github.com/jrealgatius/Stat_codis/blob/master/funcions_propies.R","?raw=T")
+  # devtools::source_url(link_source)
   
-  
-  link_source<-paste0("https://github.com/jrealgatius/Stat_codis/blob/master/funcions_propies.R","?raw=T")
-  devtools::source_url(link_source)
-  
-  
+  gc()
 
-  
-# 0. Inicialització de parametres           -----------------------------
-  
-  # N test mostra a seleccionar  (Nmostra=Inf)
-  
-  # Nmostra=Inf  # Seria tota la mostra
-  Nmostra=Inf
-  
-  # Conductor cataleg 
-  fitxer_cataleg<-"cataleg_met.xls"
-  
-  # Conductor variables
-  conductor_variables<-"variables_metplus.xls"
+
+# 0. Lectura de dades          -----------------------------
+
   # fitxersortida
-  fitxer_entrada<-here::here("dades/preparades","BD_METPLUS_v4.rds")
+  fitxer_entrada<-fitxersortida
   
-  # Obrir dades 
+# Lectura dades
   dades<-readRDS(fitxer_entrada)  
 
 
@@ -250,9 +243,8 @@ dades<-dades %>%
                           grup=="IDPP4"~(NenvasTX.IDPP4*30.4)/tempsTX.IDPP4,
                           grup=="SU"~(NenvasTX.SU*30.4)/tempsTX.SU))
 
-
 dades<-dades %>% mutate(MPR.TX=if_else(MPR.TX>1,1,MPR.TX))
-dades %>% select(grup,extreure.variables(taula="outcome_tx",conductor_variables),MPR.TX) %>% filter(is.na(MPR.TX))
+
 
 dades<-dades %>% mutate(MPR.TX.cat=case_when(MPR.TX>0.8 ~"Yes",
                                   MPR.TX<=0.8~"No",
@@ -310,8 +302,6 @@ dades<-dades %>% mutate(datafiOT =case_when(
 
 
 
-
-
 descrTable(grup~STOP24m.FD+STOP12m.FD+STOP6m.FD, data=dades)
 
 
@@ -349,6 +339,8 @@ generar_Surv<-function(dt,event){
 
 llista_events<-extreure.variables("dates_events",conductor_variables)
 
+llista_events<-semi_join(data_frame(id=llista_events), data_frame(id=names(dades)),by="id") %>% pull(id)
+
 # Genera dades_surv
 dades_surv<-map(llista_events,~generar_Surv(dt=dades,.)) %>% 
   as.data.frame()
@@ -365,9 +357,8 @@ dades<-factoritzar.NO.YES(dades,columna = "factoritzar.yes.no",taulavariables = 
 dades<-factoritzar(dades,variables=extreure.variables("factoritzar",conductor_variables))
 
 
-
 # Salvar objectes ----------
-output_Rdata<-here::here("resultats","Output_metplus.RData")
+# output_Rdata<-here::here("resultats","Output_metplus.RData")
 
 save(flow_global,flow_global2,taula1,taulaPS,dades,file=output_Rdata)
 
