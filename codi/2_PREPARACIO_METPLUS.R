@@ -116,7 +116,10 @@ caliper<-0.05
 formula<-formula_compare(x="match",y="grup",taulavariables = conductor_variables)
 taula1<-descrTable(formula,data=dades,show.all = T,show.n = T)
 
-taula1
+formula<-formula_compare(x="table1",y="grup",taulavariables = conductor_variables)
+taula1.2<-descrTable(formula,data=dades,show.all = T,show.n = T)
+taula1.2
+
 
 # Selecciono dades per matching 
 dadesmatching<-selectorvariables(taula="dadesmatch",taulavariables = conductor_variables,dades)
@@ -360,7 +363,7 @@ dades<-factoritzar(dades,variables=extreure.variables("factoritzar",conductor_va
 # Salvar objectes ----------
 # output_Rdata<-here::here("resultats","Output_metplus.RData")
 
-save(flow_global,flow_global2,taula1,taulaPS,dades,file=output_Rdata)
+save(flow_global,flow_global2,taula1,taula1.2,taulaPS,dades,file=output_Rdata)
 
 
 
