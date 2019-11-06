@@ -11,9 +11,7 @@
   # memory.size(max=160685)
   #
   #   SOURCE
-  
   # rm(list=ls())
-  # 
   # 
   # link_source<-paste0("https://github.com/jrealgatius/Stat_codis/blob/master/funcions_propies.R","?raw=T")
   # devtools::source_url(link_source)
@@ -74,8 +72,8 @@ dades<-dades %>% mutate(inclusio_met=ifelse(F.MET | F.METF,1,0))
 dades<-dades %>% mutate(inclusio_HB7=case_when(HBA1C.valor>=7~"1",
                                     HBA1C.valor<7~"0",TRUE~"NA"))
 
-dades<-recodificar(dades,taulavariables = conductor_variables,criteris = "recode")
 
+dades<-recodificar(dades,taulavariables = conductor_variables,criteris = "recode")
 
 
 #   Inclusió 3: Edad>18 anys ---------------
@@ -89,7 +87,7 @@ dades<-dades %>% mutate (inclusio_pes=ifelse(!is.na(PESO.valor),1,0))
 # Diagnostics basals (Recode)
 # NA --> 0 (Else=1) (No hi ha 0)
 dades<-dades %>% mutate_at(vars(starts_with("DG.")), 
-                           funs(if_else(is.na(.),0,1))) 
+                           funs(if_else(is.na(.) | 0,0,1))) 
 
 
 # 3. Aplicar criteris d'inclusió  ------------------------
@@ -361,10 +359,12 @@ dades<-factoritzar(dades,variables=extreure.variables("factoritzar",conductor_va
 
 
 # Salvar objectes ----------
-# output_Rdata<-here::here("resultats","Output_metplus.RData")
+# output_Rdata<-"Output_metplus.RData"
 
-save(flow_global,flow_global2,taula1,taula1.2,taulaPS,dades,file=output_Rdata)
+save(flow_global,flow_global2,taula1,taula1.2,taulaPS,dades,file=here::here("resultats",output_Rdata))
 
+
+#
 
 
 

@@ -14,7 +14,7 @@ Nmostra=Inf
 # Parametre discontinuitat/stop tractament:
 gap_dies<-92
 # Parametre d'analisis OT (TRUE) / ITT (FALSE) 
-analisis_OT<-F
+analisis_OT<-T
 #
 fitxersortida<-here::here("dades/preparades","BD_METPLUS_V5.rds")
 # Conductor cataleg 
@@ -36,11 +36,11 @@ if (analisis_OT) {
   tipoanalisis="Intention to treat (ITT)"}
 
 
-
 # 3. Execució de codi -------------
 source("./codi/1_LECTURA_METPLUS.R")
 
 source("./codi/2_PREPARACIO_METPLUS.R")
+
 
 rmarkdown::render(input="./codi/3_RESULTATS_METPLUS.Rmd",output_file=nom_fitxer,params = list(arxiu_Rdata=output_Rdata,analisis=tipoanalisis))
  

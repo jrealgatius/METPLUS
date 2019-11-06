@@ -147,11 +147,11 @@ FX.PRESCRITS_GRUPS<-FX.PRESCRITS %>%
 FX.PRESCRITS<-
   FX.PRESCRITS %>%
   select(idp, cod, dat, dbaixa)%>%
-  mutate(env= ceiling(lubridate::time_length(lubridate::interval(lubridate::ymd(dat), lubridate::ymd(dbaixa)) ,"month")) )%>% 
+  mutate(env= ceiling(lubridate::time_length(lubridate::interval(lubridate::ymd(dat), lubridate::ymd(dbaixa)) ,"month")))%>% 
   mutate(dat=as.integer(substr(dat,1,6))) %>% 
   select(idp,cod,dat,env)
 
-# Fusionar fitxers
+# Fusionar fitxers FACTURACIONS + PRESCRIPCIONS
 FX.FACTURATS_PRESCRITS<-
   FX.FACTURATS %>% 
   select(idp,cod,env,dat) %>%
@@ -192,20 +192,22 @@ dt_index<-dt_grups %>% select(idp,dtindex)
 
 # (Eliminar discontinuitats de N dies i solapaments (gap_dies=91))
 
-
-# 2.6.1. Tenint en compte facturació + dispensació  -----------------
+# 2.6.1. Tenint en compte FACTURACIÓ + DISPENSACIÓ + FACTOR DE CONVERSIÓ -----------------
 
 # Selecciono historic de farmacs facturats/prescrits dels grups a estudi i recalculo data fi
 conductor_grups<-conductor_variables %>% filter(GRUP=="IDPP4" | GRUP=="iSGLT2" | GRUP=="SU") %>% 
-  select(cod,GRUP) %>% unique()
+  select(cod,GRUP,factor_conversio_farmacs) %>% unique() %>% 
+  mutate(factor_conversio_farmacs=as.numeric(factor_conversio_farmacs)) %>% 
+  mutate(factor_conversio_farmacs=if_else(is.na(factor_conversio_farmacs),1,factor_conversio_farmacs))
 
 # Formatar Fitxer amb: dataindex (date), idp, grup(farmac), dat(date),datafi(date)
 FX.FACTURATS_PRESCRITS_GRUPS<- FX.FACTURATS_PRESCRITS %>% 
   dplyr::semi_join(dt_index,by="idp") %>% 
   dplyr::semi_join(conductor_grups,by="cod") %>% 
   dplyr::left_join(conductor_grups,by="cod")  %>% 
-  mutate(dat=lubridate::ymd(paste0(as.character(dat),"15")),datafi=dat+(30*env)) %>% 
+  mutate(dat=lubridate::ymd(paste0(as.character(dat),"15")),datafi=dat+(30*env*factor_conversio_farmacs)) %>% 
   arrange(idp)
+
 
 # Eliminar gaps i solapaments per grups agregar_solapaments_gaps() ----------
 
@@ -218,17 +220,16 @@ farmacs_dt_sense_gaps<-FX.FACTURATS_PRESCRITS_GRUPS %>%
 
 # Verificar solapamenta  n=10 pre-post  ------
 set.seed(169)
-MAP_ggplot_univariant(FX.FACTURATS_PRESCRITS_GRUPS %>% filter(GRUP=="IDPP4"),datainicial = "dat",datafinal = "datafi",id="idp",Nmostra = 10)
+MAP_ggplot_univariant(FX.FACTURATS_PRESCRITS_GRUPS %>% filter(GRUP=="SU"),datainicial = "dat",datafinal = "datafi",id="idp",Nmostra = 10)
 set.seed(169)
-MAP_ggplot_univariant(farmacs_dt_sense_gaps %>% filter(GRUP=="IDPP4"),datainicial = "dat",datafinal = "datafi",id="idp",Nmostra = 10)
-
+MAP_ggplot_univariant(farmacs_dt_sense_gaps %>% filter(GRUP=="SU"),datainicial = "dat",datafinal = "datafi",id="idp",Nmostra = 10)
 
 # Generar primera data STOP per grup de farmacs 
 # durant tot el seguiment (primer stop per tractament)
 
 dt_farmacs_STOP<-
   farmacs_dt_sense_gaps %>% 
-  group_by(idp,GRUP) %>% 
+  group_by(idp,GRUP) %>% arrange(datafi) %>% 
   slice(1) %>% 
   ungroup() %>% 
   select(idp,STOP=GRUP,datafi) %>% 
@@ -237,14 +238,14 @@ dt_farmacs_STOP<-
 
 
 
-# 2.6.1. Tenint en compte només facturació  --------------
+# 2.6.1. Tenint en compte només FACTURACIO  --------------
 
 # Formatar Fitxer amb: dataindex (date), idp, grup(farmac), dat(date),datafi(date)
 FX.FACTURATS_GRUPS<- FX.FACTURATS %>% 
   dplyr::semi_join(dt_index,by="idp") %>% 
   dplyr::semi_join(conductor_grups,by="cod") %>% 
   dplyr::left_join(conductor_grups,by="cod")  %>% 
-  mutate(dat=lubridate::ymd(paste0(as.character(dat),"15")),datafi=dat+(30*env)) %>% 
+  mutate(dat=lubridate::ymd(paste0(as.character(dat),"15")),datafi=dat+(30*env*factor_conversio_farmacs)) %>% 
   arrange(idp)
 
 
@@ -264,7 +265,7 @@ MAP_ggplot_univariant(farmacs_dt_sense_gaps %>% filter(GRUP=="IDPP4"),datainicia
 
 dt_farmacs_FD_STOP<-
   farmacs_dt_sense_gaps %>% 
-  group_by(idp,GRUP) %>% 
+  group_by(idp,GRUP) %>% arrange(datafi) %>% 
   slice(1) %>% 
   ungroup() %>% 
   select(idp,STOP.FD=GRUP,datafi) %>% 
@@ -292,13 +293,13 @@ dt_fx.temps<-agregar_prescripcions(dt=FX.PRESCRITS_GRUPS,finestra.dies=c(0,+730)
 # 
 
 # 3.6. Generar data STOP (datafiOT) ----------------
-# Generar data stop en funció de primer STOP / primer canvi TX per cada grup (Segons dispensació)
+# Generar data stop en funció de primer STOP / primer canvi TX per cada grup (Segons DISPENSACIÓ)
 
 # analisis_OT<-T
 
-if (analisis_OT==T) {
+if (analisis_OT) {
   
-  dt_data_stop<-select(dt_grups,idp,grup) %>% 
+  dt_data_stop<-dt_grups %>% select(idp,grup) %>% 
     left_join(dt_farmacs_FD_STOP %>% 
                 full_join(select(dt_fx.canvis,-dtindex),by="idp"),by="idp")%>% 
     mutate(datafiOT= case_when(
@@ -308,7 +309,7 @@ if (analisis_OT==T) {
       datafiOT=ifelse(is.na(datafiOT),dtindex,datafiOT)) %>% 
     mutate (datafiOT=lubridate::as_date(datafiOT)) %>% select(idp,datafiOT)
 } else {
-  dt_data_stop<-select(dt_grups,idp,grup) %>% 
+  dt_data_stop<-dt_grups %>% select(idp,grup) %>% 
     mutate(datafiOT=lubridate::ymd(20181231)) %>% 
     select(idp,datafiOT)
 }
@@ -380,7 +381,7 @@ TABAC<-Nmostra %>% LLEGIR.TABAC %>% mutate(cod="tab") %>%
 dt_tabac<-agregar_analitiques(dt=TABAC,bd.dindex =dt_index,finestra.dies=c(-Inf,30))
 rm(TABAC)
 
-
+# Juntar en dt_grups info de pacients
 dt_grups<-dt_grups %>% left_join(dt_pacients,by="idp")
 
 
@@ -448,4 +449,5 @@ saveRDS(BDTOTAL,fitxersortida)
 
 
 ##                  Fi d'analisis         ------------------------------------
+
 
