@@ -57,7 +57,6 @@ dades<- dades %>%
   mutate (any_dtindex=year(dtindex),
           Q_dtindex=quarter(dtindex,with_year = T)) 
 
-
 # 2. Criteris d'inclusió  --------------
 
 # 1.1 Metformina
@@ -88,6 +87,17 @@ dades<-dades %>% mutate (inclusio_pes=ifelse(!is.na(PESO.valor),1,0))
 # NA --> 0 (Else=1) (No hi ha 0)
 dades<-dades %>% mutate_at(vars(starts_with("DG.")), 
                            funs(if_else(is.na(.) | 0,0,1))) 
+
+
+# Comorbilidad basal (Suma de comorbiditats)  ---------------
+llista_comorb<-extreure.variables("ncomorb",taulavariables = conductor_variables)
+dades<-comptar_valors(dades,variables=llista_comorb,valor="1") %>% rename(DG.Ncomorb=num_valors)
+
+dades<-dades %>% mutate(DG.Ncomorb.cat3=case_when(
+  DG.Ncomorb==0~"None",
+  DG.Ncomorb==1 | DG.Ncomorb==2~"1-2",
+  DG.Ncomorb>=3~">3"))
+
 
 
 # 3. Aplicar criteris d'inclusió  ------------------------
@@ -356,6 +366,8 @@ dades<-etiquetar_valors(dades,variables_factors = conductor_variables,fulla="val
 # 9. FActoritzar -------------
 dades<-factoritzar.NO.YES(dades,columna = "factoritzar.yes.no",taulavariables = conductor_variables)
 dades<-factoritzar(dades,variables=extreure.variables("factoritzar",conductor_variables))
+
+
 
 
 # Salvar objectes ----------

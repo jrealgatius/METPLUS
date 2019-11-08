@@ -60,45 +60,50 @@
 # write.xlsx(CATALEG, "cataleg.xlsx")
 
 
+# Directori de dades 
+# directori_de_dades<-"dades/SIDIAP"
+directori_de_dades<-"dades/SIDIAP/mostra"
+
+
 conductor_variables<-read_excel(fitxer_cataleg,col_types = "text")
 
 
+
 LLEGIR.PACIENTS<-function(n=Nmostra) {
-  readRDS("dades/SIDIAP" %>% here::here("METPLUS_entregable_poblacio_20181126_190346.rds")) %>% as_tibble() %>% head(n)}
+  readRDS(directori_de_dades %>% here::here("METPLUS_entregable_poblacio_20181126_190346.rds")) %>% as_tibble() %>% head(n)}
 
 LLEGIR.PROBLEMES<-function(n=Nmostra) {
-  readRDS("dades/SIDIAP" %>% here::here("METPLUS_entregable_diagnostics_20181126_190346.rds"))%>% as_tibble() %>% head(n)}
+  readRDS(directori_de_dades %>% here::here("METPLUS_entregable_diagnostics_20181126_190346.rds"))%>% as_tibble() %>% head(n)}
 
 LLEGIR.CMBDH<-function(n=Nmostra) {
-  readRDS("dades/SIDIAP" %>% here::here("METPLUS_entregable_cmbdh_diagnostics_20181126_190346.rds"))%>% as_tibble() %>% head(n)}
+  readRDS(directori_de_dades %>% here::here("METPLUS_entregable_cmbdh_diagnostics_20181126_190346.rds"))%>% as_tibble() %>% head(n)}
 
 LLEGIR.PROC<-function(n=Nmostra) {
-  readRDS("dades/SIDIAP" %>% here::here("METPLUS_entregable_cmbdh_procediments_20181126_190346.rds"))%>% as_tibble() %>% head(n)}
+  readRDS(directori_de_dades %>% here::here("METPLUS_entregable_cmbdh_procediments_20181126_190346.rds"))%>% as_tibble() %>% head(n)}
 
 LLEGIR.REACCIONS_ADV<-function(n=Nmostra) {
-  readRDS("dades/SIDIAP" %>% here::here("METPLUS_entregable_reaccions_adverses_20181126_190346.rds"))%>% as_tibble() %>% head(n) }
+  readRDS(directori_de_dades %>% here::here("METPLUS_entregable_reaccions_adverses_20181126_190346.rds"))%>% as_tibble() %>% head(n) }
 
 LLEGIR.TABAC<-function(n=Nmostra) {
-  readRDS("dades/SIDIAP" %>% here::here("METPLUS_entregable_tabaquisme_20181126_190346.rds"))%>% as_tibble() %>% head(n) }
+  readRDS(directori_de_dades %>% here::here("METPLUS_entregable_tabaquisme_20181126_190346.rds"))%>% as_tibble() %>% head(n) }
 
 LLEGIR.FX.FACTURATS<-function(n=Nmostra) {
-  readRDS("dades/SIDIAP" %>% here::here("METPLUS_entregable_farmacs_facturats_20181126_190346.rds"))%>% as_tibble() %>% head(n) }
+  readRDS(directori_de_dades %>% here::here("METPLUS_entregable_farmacs_facturats_20181126_190346.rds"))%>% as_tibble() %>% head(n) }
 
 LLEGIR.FX.PRESCRITS<-function(n=Nmostra) {
-  readRDS("dades/SIDIAP" %>% here::here("METPLUS_entregable_farmacs_prescrits_20181126_190346.rds"))%>% as_tibble() %>% head(n) }
+  readRDS(directori_de_dades %>% here::here("METPLUS_entregable_farmacs_prescrits_20181126_190346.rds"))%>% as_tibble() %>% head(n) }
 
 LLEGIR.VARIABLES<-function(n=Nmostra) {
-  readRDS("dades/SIDIAP" %>% here::here("METPLUS_entregable_variables_cliniques_20181128_175605.rds"))%>% as_tibble() %>% head(n) }
+  readRDS(directori_de_dades %>% here::here("METPLUS_entregable_variables_cliniques_20181128_175605.rds"))%>% as_tibble() %>% head(n) }
 
 LLEGIR.CLINIQUES<-function(n=Nmostra) {
-  readRDS("dades/SIDIAP" %>% here::here("METPLUS_entregable_variables_analitiques_20181126_190346.rds"))%>% as_tibble() %>% head(n) }
+  readRDS(directori_de_dades %>% here::here("METPLUS_entregable_variables_analitiques_20181126_190346.rds"))%>% as_tibble() %>% head(n) }
 
 LLEGIR.PROB_EXTRA<-function(n=Nmostra) {
-  fread("dades/SIDIAP" %>% here::here("METPLUS_entregable_diagnostics_extra_20190607_174921.txt"))%>% as_tibble() %>% head(n) }
+  fread(directori_de_dades %>% here::here("METPLUS_entregable_diagnostics_extra_20190607_174921.txt"))%>% as_tibble() %>% head(n) }
 
 
 # 1.1.Lectura de PACIENTS   --------------
-
 
 dt_pacients<-Inf %>% LLEGIR.PACIENTS()
 

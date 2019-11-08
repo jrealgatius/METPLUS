@@ -3,6 +3,9 @@
 rm(list=ls())
 gc()
 
+library(readxl)
+library(dplyr)
+
 #   SOURCE
 # CArrego funcions -------------------
 link_source<-paste0("https://github.com/jrealgatius/Stat_codis/blob/master/funcions_propies.R","?raw=T")
@@ -11,10 +14,16 @@ devtools::source_url(link_source)
 
 # Parametres -------------------
 Nmostra=Inf
+
+## Directori de dades 
+# directori_de_dades<-"dades/SIDIAP"
+directori_de_dades<-"dades/SIDIAP/mostra"
+
+
 # Parametre discontinuitat/stop tractament:
 gap_dies<-92
 # Parametre d'analisis OT (TRUE) / ITT (FALSE) 
-analisis_OT<-T
+analisis_OT<-F
 #
 fitxersortida<-here::here("dades/preparades","BD_METPLUS_V5.rds")
 # Conductor cataleg 

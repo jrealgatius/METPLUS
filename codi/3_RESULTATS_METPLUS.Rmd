@@ -244,7 +244,7 @@ models<-model1 %>% rbind(model2) %>% rbind(model3)
 titul<-paste0("Odds ratio crudos de reducción de PESO de cada grupo en relación al resto")
 
 models %>%
-  kable(caption = titul,digits = 3) %>%
+  kable(caption = titul,digits = 4) %>%
   kableExtra::kable_styling()
 
 
@@ -258,7 +258,7 @@ models<-model1 %>% rbind(model2) %>% rbind(model3)
 titul<-paste0("Odds ratio crudos de reducción de PESO de cada grupo en relación al resto. Ajustato por:",paste0(extreure.variables("grup_ajustat",conductor_variables),collapse = ", "))
 
 models %>%
-  kable(caption = titul,digits = 3) %>%
+  kable(caption = titul,digits = 4) %>%
   kableExtra::kable_styling()
 
 
@@ -274,13 +274,13 @@ outcome<-"PESHB.dif324m.cat"
 
 model<-extreure_model_logistic("grup",y=outcome,taulavariables = conductor_variables,dades=dades,valor_outcome = "Yes")
 model$taula_OR %>% head(2) %>% 
-  kable(caption = paste0("Odds ratio reducción de peso y HBA1C ajustados por:",paste0(extreure.variables("grup",conductor_variables),collapse = ", "),digits = 3)) %>%   
+  kable(caption = paste0("Odds ratio reducción de peso y HBA1C ajustados por:",paste0(extreure.variables("grup",conductor_variables),collapse = ", ")),digits = 4) %>%   
   kableExtra::kable_styling()
 
 # Ajustat 
 model<-extreure_model_logistic("grup_ajustat",y=outcome,taulavariables = conductor_variables,dades=dades,valor_outcome = "Yes")
 model$taula_OR %>% head(2) %>% 
-  kable(caption = paste0("Odds ratio reducción de peso y HBA1C ajustados por:",paste0(extreure.variables("grup_ajustat",conductor_variables),collapse = ", "),digits = 3)) %>%   
+  kable(caption = paste0("Odds ratio reducción de peso y HBA1C ajustados por:",paste0(extreure.variables("grup_ajustat",conductor_variables),collapse = ", ")),digits = 4) %>%   
   kableExtra::kable_styling()
 ```
 
