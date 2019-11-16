@@ -8,7 +8,7 @@ output:
   pdf_document: default
   word_document: default
 params: 
-  arxiu_Rdata: "Output_metplusOT.RData"
+  arxiu_Rdata: "Output_metplusITT.RData"
   analisis: "Intention to treat (ITT)"
 ---
 
@@ -34,14 +34,17 @@ devtools::source_url(link_source)
 # Carrega Rdata
 load(here::here("resultats",params$arxiu_Rdata))
 
+
+
 ```
 
-```{r calculs, include=F}
-# Generar variable grup indicadora (en relació a la resta)
-
-dades<-make_dummies(dades,"grup","grup_")
 
 
+```{r filtres, include=F}
+
+dades<-etiquetar(dades,taulavariables = conductor_variables)
+dadespre<-dades
+dades<-dades %>% filter(ps==1)
 
 ```
 
@@ -49,7 +52,6 @@ dades<-make_dummies(dades,"grup","grup_")
 
 ```{r generacio_taules, echo=F, include=F}
 
-dades<-etiquetar(dades,taulavariables = conductor_variables)
 
 # 10.1 Taules descriptives exploratories  ----------------
 taules<-llistadetaules.compare(tablero=c("table1","table2","table3","table4"),y="grup",variables = conductor_variables,dt=dades)
@@ -85,25 +87,62 @@ To compare the proportion of patients achieving the reduction in HbA1c values of
 
 ***
 
+## Estado:
+
+### Últimas actualizaciones 
+
+&check; Rehecho matching PS añadiendo variables: DM duration, CKDEPI, peso y edad en continuo... <br/>
+&check; Análisis tomando como referencia resto de grupos <br/>
+&check; Añadir N marginal en tabla <br/>
+
+### Realizado
+
+&check; Verificado código: no inclusiones de metformina en Sulfunurea <br/>
+&check; Generado gráfico de verificación de seguimiento de fármacos <br/>
+&check; Revisado y arreglado código de analisis On Treatment (No cuadrava con ITT)  <br/>
+&check; Ampliado gap de discontinuidad de 61 a 92 dias <br/>
+&check; Programación funcional (LPA-I) de estudio segun diseño <br/>
+&check; Lectura de ficheros historicos <br/>
+&check; Generación de fecha de inclusión  <br/>
+&check; Generación de fecha de fin de tratamiento y/o cambios <br/>
+&check; Agregación de variables en fecha índice <br/>
+&check; Aplicado criterios de exclusión y generación de Flow-charts <br/>
+&check; Generación de muestras y emparejamiento <br/>
+&check; Validación de matching <br/>
+&check; Calculos y recodificaciones de nuevas variables <br />
+&check; Analisis según objetivos  <br />
+
+### Pendiente
+
+* Revisión y depuración de errores 
+* Edición de tablas 
+* Recodificaciones y cálculos
+* Validación clínica de resultados 
+* Redacción de informe y artículo
+...
+
+
 # Flow chart    
 
 ```{r, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
 
 
-# flow_global
+flow_global
 
 flow_global2
 
 
 ```
 
+
 # Pre-post descriptive analysis 
 
 ```{r, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
 
-export2md(taula1, caption = "Table 1: Sociodemographic variables pre matching (N=75808)")
 
-export2md(taulaPS, caption = "Table 1: Sociodemographic variables post matching (N=6577)")
+export2md(taula1, caption = paste0("Table 1: Sociodemographic variables pre matching"))
+
+export2md(taulaPS, caption = paste0("Table 1: Sociodemographic variables post matching (N=",count(dades),")"))
 
 
 
@@ -115,11 +154,13 @@ export2md(taulaPS, caption = "Table 1: Sociodemographic variables post matching 
 
 export2md(taules[[1]], caption = "Table 1: Sociodemographic variables")
 
-export2md(taules[[2]], caption = "Table 2: Baseline comorbidity variables")
+# export2md(taules[[2]], caption = "Table 2: Baseline comorbidity variables")
 
 export2md(taules[[3]], caption = "Clinical variables related to T2DM")
 
-
+formula<-formula_compare("tabla_basal",y="grup",taulavariables = conductor_variables)
+descrTable(formula,dades,show.p.overall = F,show.all = T,hide.no ="No") %>% 
+  export2md(caption = "Comorbidity profile and baseline clinical characteristics by group")
 
 
 ```
@@ -128,12 +169,16 @@ export2md(taules[[3]], caption = "Clinical variables related to T2DM")
 
 To compare the proportion of patients achieving the reduction in HbA1c values of at least 0.5%, a weight reduction of at least 3%, after the addition of a SU, an DPP-4i or an SGLT-2i to the treatment with metformin in patients with T2DM and insufficient glycemic control in the medium-long term, up to a maximum of 24 months of follow-up. 
 
-
+### Resultado 1.1
 ```{r, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
 
 formula<-formula_compare(x="outcomes1",y="grup",taulavariables = conductor_variables)
 
-descrTable(formula,data=dades,show.p.mul = T) %>% 
+descrTable(formula,data=dades,show.p.mul = T,extra.labels=c("","",""),show.n=T) %>% 
+  export2md(caption = "Variables related to treatment efficacy")
+
+
+descrTable(grup ~ PESHB.dif324m.cat,data=dades,show.p.mul = T,extra.labels=c("","",""),show.n=T) %>% 
   export2md(caption = "Variables related to treatment efficacy")
 
 
@@ -143,6 +188,7 @@ descrTable(formula,data=dades,show.p.mul = T) %>%
 
 ## Odds Ratio de reducción de HBA1C en relación a un grupo de referencia (IDPP4) crudo y ajustado
 
+### Resultado 1.2
 ```{r OR_REDUC_HB, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
 
 
@@ -154,7 +200,7 @@ outcome<-"HBA1C.dif324m.cat"
 model<-extreure_model_logistic(x="grup",y=outcome,taulavariables = conductor_variables,dades=dades,valor_outcome = "Yes")
 
 model$taula_OR %>% head(2) %>%
-  kable(caption = paste0("Odds ratio reducción de HBA1C ajustados por: ",paste0(extreure.variables("grup",conductor_variables),collapse = ", "),digits = 3)) %>%
+  kable(caption = paste0("Odds ratio reducción de HBA1C ajustados por: ",paste0(extreure.variables("grup",conductor_variables),collapse = ", ")),digits = 3) %>%
   kableExtra::kable_styling()
 
 # Ajustat
@@ -168,8 +214,9 @@ model$taula_OR %>% head(2) %>%
 
 ```
 
-## Odds Ratio de reducción de HBA1C de cada grupo en relación al resto
+## Odds Ratio de reducción de HBA1C (>0.5%) de cada grupo en relación al resto
 
+### Resultado 1.3
 ```{r ORGLOBAL_REDUC_HB, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
 
 ##################  Odds RatioS HBA1C.dif324m.cat       --------
@@ -187,7 +234,6 @@ models %>%
   kable(caption = titul,digits = 3) %>%
   kableExtra::kable_styling()
 
-
 # OR's ajustats
 model1<-extreure_model_logistic(x="grupIDPP4_adj",y=outcome,taulavariables = conductor_variables,dades=dades,valor_outcome = "Yes")$taula_OR %>% head(1) 
 model2<-extreure_model_logistic(x="grupSU_adj",y=outcome,taulavariables = conductor_variables,dades=dades,valor_outcome = "Yes")$taula_OR %>% head(1) 
@@ -204,8 +250,9 @@ models %>%
 
 ```
 
-## Odds Ratio de reducción de PESO en relación a un grupo de referencia (IDPP4) crudo y ajustado
+## Odds Ratio de reducción de PESO (>3%) en relación a un grupo de referencia (IDPP4) crudo y ajustado
 
+### Resultado 1.4
 ```{r ORPESO, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
 ##################  Odds Ratio  PESO.dif324m.cat      --------
 # OR's cru
@@ -228,8 +275,9 @@ model$taula_OR %>% head(2) %>% mutate_if(is.numeric, format, digits=3) %>%
 ```
 
 
-## Odds Ratio de reducción de PESO de cada grupo en relación al resto
+## Odds Ratio de reducción de PESO (>3%) de cada grupo en relación al resto
 
+### Resultado 1.5
 ```{r OR2_PESO, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
 
 ##################  Odds RatioS HBA1C.dif324m.cat       --------
@@ -266,6 +314,7 @@ models %>%
 
 ## Odds Ratio de reducción de HBA1C + Peso de cada grupo en relación a IDPP4
 
+### Resultado 1.6
 ```{r ORPES_HB_REDUCCIO, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
 ##################  Odds Ratio  PESHB.dif324m.cat      --------
 # OR's cru
@@ -287,6 +336,7 @@ model$taula_OR %>% head(2) %>%
 
 ## Odds Ratio de reducción de PESO de cada grupo en relación al resto
 
+### Resultado 1.7
 ```{r OR2PES_HB_REDUCCIO, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
 
 ##################  Odds RatioS HBA1C.dif324m.cat       --------
@@ -323,27 +373,65 @@ models %>%
 
 # Secondary objectives
 
-
 - To estimate the mean reduction of HbA1c and body weight separately after the addition of an SU, a DPP-4i or an SGLT-2i in patients with DM2 treated with metformin and insufficient glycemic control (up to 24 months).
 
+### Resultado 2.1
 
+#### Reducción media [IC95] , I diferencia entre grupos cruda y ajustada
 ```{r outcomes_secundaris, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
 
 # Outcomes continus 
 
+formula<-formula_compare(x="outcomes_continus",y="grup",taulavariables = conductor_variables)
+
+descrTable(formula,data=dades,show.p.mul = T,hide = T,extra.labels=c("Mean[95%CI]"),show.ci = T) %>% 
+  export2md(caption = "Mean reduction of HbA1c and body weight")
+
+
 # Diferencies crues
 model<-extreure_coef_glm(dt=dades,outcomes = "outcomes_continus",x="grup",z="",taulavariables = conductor_variables)
-
+# Etiquetar coeficients
+model$coef<-model$coef %>% etiquetar_taula(camp = "Outcome",conductor_variables)
 model$coef %>% kable(caption=paste0("Betas",model$caption),digits=3) %>% 
   kableExtra::kable_styling()
 
 # Diferencies ajustades
 model<-extreure_coef_glm(dt=dades,outcomes = "outcomes_continus",x="grup",z="v.ajust",taulavariables = conductor_variables)
-
 # Etiquetar coeficients
 model$coef<-model$coef %>% etiquetar_taula(camp = "Outcome",conductor_variables)
-
 # Mostrar coeficients
+model$coef %>% kable(caption=paste0("Betas",model$caption),digits=3) %>% 
+  kableExtra::kable_styling()
+
+
+```
+
+### Resultado 2.2
+
+Diferencias ajustadas de cada grupo en relación al resto
+
+```{r}
+# Ara fer-ho de cada grup respecte la resta 
+
+
+# Diferencies crues IDPP4
+model<-extreure_coef_glm(dt=dades,outcomes = "outcomes_continus",x="grup_IDPP4",z="v.ajust",taulavariables = conductor_variables)
+# Etiquetar coeficients
+model$coef<-model$coef %>% etiquetar_taula(camp = "Outcome",conductor_variables)
+model$coef %>% kable(caption=paste0("Betas",model$caption),digits=3) %>% 
+  kableExtra::kable_styling()
+
+# Diferencies crues SU
+model<-extreure_coef_glm(dt=dades,outcomes = "outcomes_continus",x="grup_SU",z="v.ajust",taulavariables = conductor_variables)
+# Etiquetar coeficients
+model$coef<-model$coef %>% etiquetar_taula(camp = "Outcome",conductor_variables)
+model$coef %>% kable(caption=paste0("Betas",model$caption),digits=3) %>% 
+  kableExtra::kable_styling()
+
+# Diferencies crues ISGLT2
+model<-extreure_coef_glm(dt=dades,outcomes = "outcomes_continus",x="grup_ISGLT2",z="v.ajust",taulavariables = conductor_variables)
+# Etiquetar coeficients
+model$coef<-model$coef %>% etiquetar_taula(camp = "Outcome",conductor_variables)
 model$coef %>% kable(caption=paste0("Betas",model$caption),digits=3) %>% 
   kableExtra::kable_styling()
 
@@ -352,10 +440,10 @@ model$coef %>% kable(caption=paste0("Betas",model$caption),digits=3) %>%
 
 - To assess the average reduction in systolic blood pressure after the addition of an SU, a DPP-4i or an SGLT-2i in patients with DM2 treated with metformin and insufficient glycemic control.
 
-
+### Resultado 2.2
 ```{r, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
 formula<-formula_compare("table6",y="grup",taulavariables = conductor_variables)
-descrTable(formula,dades) %>% 
+descrTable(formula,dades,show.ci = T,extra.labels=c("Mean[95%CI]")) %>% 
   export2md(caption = "Secondary variables related to treatment efficacy")
 
 # Diferencies crues
@@ -373,16 +461,41 @@ model$coef<-model$coef %>% etiquetar_taula(camp = "Outcome",conductor_variables)
 model$coef %>% kable(caption=paste0("Betas",model$caption),digits=3) %>% 
   kableExtra::kable_styling()
 
+# Diferencies ajustades
+model<-extreure_coef_glm(dt=dades,outcomes = "table6",x="grup_IDPP4",z="v.ajust",taulavariables = conductor_variables)
+# Etiquetar coeficients
+model$coef<-model$coef %>% etiquetar_taula(camp = "Outcome",conductor_variables)
+# Mostrar taula
+model$coef %>% kable(caption=paste0("Betas",model$caption),digits=3) %>% 
+  kableExtra::kable_styling()
+
+# Diferencies ajustades
+model<-extreure_coef_glm(dt=dades,outcomes = "table6",x="grup_SU",z="v.ajust",taulavariables = conductor_variables)
+# Etiquetar coeficients
+model$coef<-model$coef %>% etiquetar_taula(camp = "Outcome",conductor_variables)
+# Mostrar taula
+model$coef %>% kable(caption=paste0("Betas",model$caption),digits=3) %>% 
+  kableExtra::kable_styling()
+
+# Diferencies ajustades
+model<-extreure_coef_glm(dt=dades,outcomes = "table6",x="grup_ISGLT2",z="v.ajust",taulavariables = conductor_variables)
+# Etiquetar coeficients
+model$coef<-model$coef %>% etiquetar_taula(camp = "Outcome",conductor_variables)
+# Mostrar taula
+model$coef %>% kable(caption=paste0("Betas",model$caption),digits=3) %>% 
+  kableExtra::kable_styling()
+
+
+
 
 ```
 
 - To assess the evolution of lipid profile (mean total cholesterol, HDL, LDL, and triglycerides) after the addition of an SU, a DPP-4i or an SGLT-2i in patients with DM2 treated with metformin and insufficient control glycemic. 
 
-
+### Resultado 3.1
 ```{r, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
-
 formula<-formula_compare("table7",y="grup",taulavariables = conductor_variables)
-descrTable(formula,dades) %>% 
+descrTable(formula,dades,extra.labels = c("Mean[95%CI]"),show.ci = T) %>% 
   export2md(caption = "Secondary variables related to treatment efficacy")
 
 
@@ -395,6 +508,31 @@ model$coef %>% kable(caption=paste0("Betas",model$caption),digits=3) %>%
 
 # Diferencies ajustades
 model<-extreure_coef_glm(dt=dades,outcomes = "table7",x="grup",z="v.ajust",taulavariables = conductor_variables)
+model$coef %>% kable(caption=paste0("Betas",model$caption),digits=3) %>% 
+  kableExtra::kable_styling()
+
+
+# Diferencies ajustades
+model<-extreure_coef_glm(dt=dades,outcomes = "table7",x="grup_IDPP4",z="v.ajust",taulavariables = conductor_variables)
+# Etiquetar coeficients
+model$coef<-model$coef %>% etiquetar_taula(camp = "Outcome",conductor_variables)
+# Mostrar taula
+model$coef %>% kable(caption=paste0("Betas",model$caption),digits=3) %>% 
+  kableExtra::kable_styling()
+
+# Diferencies ajustades
+model<-extreure_coef_glm(dt=dades,outcomes = "table7",x="grup_SU",z="v.ajust",taulavariables = conductor_variables)
+# Etiquetar coeficients
+model$coef<-model$coef %>% etiquetar_taula(camp = "Outcome",conductor_variables)
+# Mostrar taula
+model$coef %>% kable(caption=paste0("Betas",model$caption),digits=3) %>% 
+  kableExtra::kable_styling()
+
+# Diferencies ajustades
+model<-extreure_coef_glm(dt=dades,outcomes = "table7",x="grup_ISGLT2",z="v.ajust",taulavariables = conductor_variables)
+# Etiquetar coeficients
+model$coef<-model$coef %>% etiquetar_taula(camp = "Outcome",conductor_variables)
+# Mostrar taula
 model$coef %>% kable(caption=paste0("Betas",model$caption),digits=3) %>% 
   kableExtra::kable_styling()
 
@@ -424,6 +562,19 @@ descrTable(formula,dades) %>%
 # descrTable(STOP.FD_surv~grup,data=dades, show.ratio = T)
 
 survminer::ggsurvplot(survfit(STOP.FD_surv ~ grup, data = dades), data = dades,
+                  main = "Incidence curve",
+                  title= "Suspensions/dropouts during follow-up before 24 months",
+                  size = 0.5,
+                  ylim = c(0,1),
+                  fun="event",cumevents = T,
+                  xlim = c(0,730),
+                  break.x.by=180,
+                  xlab = "Time in days",
+                  censor.shape="|", censor.size = 1)
+
+
+
+survminer::ggsurvplot(survfit(STOP.FD_surv ~ grup, data = dades), data = dades,
                   main = "Survival curve",
                   title= "Suspensions/dropouts during follow-up before 24 months",
                   size = 0.5,
@@ -431,8 +582,29 @@ survminer::ggsurvplot(survfit(STOP.FD_surv ~ grup, data = dades), data = dades,
                   xlim = c(0,730),
                   break.x.by=180,
                   xlab = "Time in days",
-                  risk.table = F,
+                  risk.table = "abs_pct",
                   censor.shape="|", censor.size = 1)
+
+
+
+
+
+
+```
+
+## Seguimiento de dispensación de fármacos de estudio (Muestra=20)
+
+Muestra aleatoria de 20 pacientes, y seguimiento de dispensaciones. 
+
+Se muestran dos figuras del mapeo de datos correspondientes a las dispensaciones realizadas durante el seguimiento. 
+Figura original y figura después de eliminar las discontinuidades (<92 dias) y solapamientos con el fin de verificar el cálculo.
+
+```{r mapeig, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
+
+
+mapeig_farmacs2
+
+mapeig_farmacs1
 
 
 
@@ -453,20 +625,41 @@ descrTable(EV.RAH.surv~grup,data=dades, show.ratio = F,show.p.overall = F) %>% e
 descrTable(EV.RAHEM.surv ~grup,data=dades, show.ratio = F,show.p.overall = F) %>% export2md()
 descrTable(EV.RAR.surv~grup,data=dades, show.ratio = F,show.p.overall = F) %>% export2md()
 
+# Falta : EV.RAU EV.HIPO 
+
+
 
 ```
 
 - To describe the comorbidity profile and baseline clinical characteristics of patients with DM2 and insufficient control with metformin in monotherapy after addition of a treatment with SU, DPP-4i or SGLT-2i.
 
-```{r}
+Si consideramos insuficiente control después de la addición, una HBA1C >=7% los 24 meses después
+
+```{r, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
+
+dades_temp<-dades %>% filter(HBA1C.valor324m>=7)
+formula<-formula_compare("tabla_basal",y="grup",taulavariables = conductor_variables)
+descrTable(formula,dades_temp,show.p.overall = F,show.all = T) %>% 
+  export2md(caption = "Comorbidity profile and baseline clinical characteristics by group")
+
+
 
 ```
 
 - To describe the clinical characteristics of patients who have the best efficacy results (patients with a reduction of HbA1c of more than 0.5% and a weight reduction of at least 3% before the end of follow-up).
 
+Comparativa de características basales de pacientes que consiguen una reducción reduction de peso y HBA1C del 3% y de 0.5 unidades de HBA1c(%) en algun momento antes de los 24meses
 
 
-```{r}
+
+```{r, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
+
+
+formula<-formula_compare("tabla_basal",y="PESHB.dif324m.cat",taulavariables = conductor_variables)
+descrTable(formula,dades,show.p.overall = F) %>% 
+  export2md(caption = "Clinical characteristics of patients who have the best results (Weight-HBA1C reduction vs No) before the end of follow-up")
+
+
 
 ```
 
