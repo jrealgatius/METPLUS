@@ -16,8 +16,8 @@ devtools::source_url(link_source)
 Nmostra=Inf
 
 ## Directori de dades 
-# directori_de_dades<-"dades/SIDIAP"
-directori_de_dades<-"dades/SIDIAP/mostra"
+directori_de_dades<-"dades/SIDIAP"
+# directori_de_dades<-"dades/SIDIAP/mostra_test"
 
 
 # Parametre discontinuitat/stop tractament:
@@ -37,20 +37,29 @@ if (Nmostra!=Inf) nom_fitxer<-paste0(nom_fitxer,"N",Nmostra)
 
 if (analisis_OT) {
   nom_fitxer<-paste0(nom_fitxer,"OT.html")
+  fitxersortida<-here::here("dades/preparades","BD_METPLUS_OT.rds")
   output_Rdata<-"Output_metplusOT.RData"
   tipoanalisis="On Treatment"
   } else {
   nom_fitxer<-paste0(nom_fitxer,"ITT.html")
+  fitxersortida<-here::here("dades/preparades","BD_METPLUS_ITT.rds")
   output_Rdata<-"Output_metplusITT.RData"
   tipoanalisis="Intention to treat (ITT)"}
 
 
 # 3. Execució de codi -------------
+
+#3.1.
 source("./codi/1_LECTURA_METPLUS.R")
 
+
+
+#3.2
 source("./codi/2_PREPARACIO_METPLUS.R")
 
 
+
+#3.3
 rmarkdown::render(input="./codi/3_RESULTATS_METPLUS.Rmd",output_file=nom_fitxer,params = list(arxiu_Rdata=output_Rdata,analisis=tipoanalisis))
  
 
