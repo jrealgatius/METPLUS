@@ -30,8 +30,13 @@ library(broom)
 library(kableExtra)
 library(ggplot2)
 
+
+#   SOURCE
+# CArrego funcions -------------------
 link_source<-paste0("https://github.com/jrealgatius/Stat_codis/blob/master/funcions_propies.R","?raw=T")
 devtools::source_url(link_source)
+
+
 
 # Carrega Rdata
 load(here::here("resultats",params$arxiu_Rdata))
@@ -91,6 +96,21 @@ To compare the proportion of patients achieving the reduction in HbA1c values of
 
 ### Últimas actualizaciones 
 
+&check; Generar nuevo agregador CVD  <br/>
+&check; Eliminado codigos T14 de agregador (musculoskeletal system adverse reactions)  <br/>
+&check; Diferencia de PAS entre grupos: SU, ISGLT2  <br/>
+&check; Cálculo de p's de diferencias en las reacciones adversas  <br/>
+
+### Realizado
+
+&check; Revisado código.  <br/>
+&check; Incluir tabaco/PAS/PAD en tablas pre matching.  <br/>
+&check; Añadir comparativa tomando categoria de referencia grupo ISGLT2  <br/>
+&check; Marginales totales de algunas tablas   <br/>
+&check; Añadir medianas + IQR de cuantitativas  <br/>
+&check; Cálculo de p-valores faltantes <br/>
+&check; Añadido número de envases por grupo durante el seguimiento <br/>
+&check; Añadido tiempo medio de reducción de valor principal durante el seguimiento <br/>
 &check; Reselección de muestras (nuevo matching PS) añadiendo más variables no es establecidas en el protocolo inicial (DM duration + CKDEPI) <br/>
 &check; Validación de nuevo matching PS  <br/>
 &check; Generación de nuevos resultados <br/>
@@ -101,9 +121,6 @@ To compare the proportion of patients achieving the reduction in HbA1c values of
 &check; Análisis tomando como referencia cada uno de los grupos <br/>
 &check; Añadir N marginal en tabla para evaluar missings <br/>
 &check; Reestructuración de tablas según protocolo <br/>
-
-### Realizado
-
 &check; Verificado código: no inclusiones de metformina en Sulfunurea <br/>
 &check; Generado gráfico de verificación de seguimiento de fármacos <br/>
 &check; Revisado y arreglado código de análisis On Treatment (No cuadrava con ITT)  <br/>
@@ -121,6 +138,7 @@ To compare the proportion of patients achieving the reduction in HbA1c values of
 
 ### Pendiente
 
+* Analisi OT
 * Revisión y depuración de errores 
 * Edición de tablas 
 * Recodificaciones y cálculos
@@ -146,11 +164,11 @@ flow_global2
 
 ```{r, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
 
-
 export2md(taula1, caption = paste0("Table 1: Sociodemographic variables pre matching"))
 
-export2md(taulaPS, caption = paste0("Table 1: Sociodemographic variables post matching (N=",count(dades),")"))
+export2md(taula1.2, caption = paste0("Table 1.2 Sociodemographic variables pre matching"))
 
+export2md(taulaPS, caption = paste0("Table 1: Sociodemographic variables post matching (N=",count(dades),")"))
 
 
 ```
@@ -168,6 +186,16 @@ export2md(taules[[3]], caption = "Clinical variables related to T2DM")
 formula<-formula_compare("tabla_basal",y="grup",taulavariables = conductor_variables)
 descrTable(formula,dades_completes,show.p.overall = F,show.all = T,hide.no ="No",show.n = T) %>% 
   export2md(caption = "Comorbidity profile and baseline clinical characteristics by group")
+
+formula<-formula_compare("tbasal_continu",y="grup",taulavariables = conductor_variables)
+descrTable(formula,dades_completes,show.p.overall = F,show.all = T,hide.no ="No",show.n = T, method=2, 
+           extra.labels = c("","")) %>% 
+  export2md(caption = "Comorbidity profile and baseline clinical characteristics by group")
+
+
+# Dades que falten de seguiment 
+descrTable(grup~situacio+temps_seguiment,dades_completes,method = 4,show.p.overall = F,show.all = T,hide.no ="No",show.n = T,extra.labels = c("","","")) %>% 
+  export2md(caption = "Seguimiento de pacientes by group")
 
 
 ```
@@ -193,6 +221,18 @@ cbind("Complete case Analysis" = temp_comp, "Imputation cases analysis (m=10)" =
    export2md(caption = "Variables related to treatment efficacy")
   
 
+# 11.1 DESCRIPTIU outcomes dades completes vs dades imputades
+formula_temp<-formula_compare("outcomes_continus",y="grup",taulavariables = conductor_variables)
+temp_comp<-compareGroups::descrTable(formula_temp,data=dades %>% filter(.imp==0),show.p.overall = F,show.n = T,extra.labels =c("",""),method = 2)
+# Descriptivo datos imputados:
+temp_imp <-compareGroups::descrTable(formula_temp,data=dades %>% filter(.imp>0),show.p.overall = F,show.n = T,extra.labels =c("",""),method = 2)
+
+cbind("Complete case Analysis" = temp_comp, "Imputation cases analysis (m=10)" = temp_imp) %>% 
+   export2md(caption = "Variables related to treatment efficacy")
+  
+
+
+
 
 ```
 
@@ -215,6 +255,17 @@ taula_estimacions_ISGLT2 %>% kable(digits = 3,caption = "Estimaciones del grupo 
 ```
 
 
+## Resultado 1.bis Comparativo (respecto ISGLT2)
+
+```{r,  message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
+# Mesures d'asociació per cada outcome 
+
+
+taula_estimacions_GRUP_ref_ISGLT2 %>% kable(digits = 3, caption = "Estimaciones en relación a un grupo de referencia (ISGLT2) crudo y ajustado") %>% kableExtra::kable_styling()
+
+
+
+```
 
 
 
@@ -237,6 +288,14 @@ descrTable(formula,data=dades_completes,show.p.overall = F, extra.labels=c(""), 
 descrTable(formula,data=dades %>% filter(.imp>0),show.p.overall = F,extra.labels=c(""),show.n = T) %>% 
   export2md(caption = "Mean reduction of HbA1c and body weight, imputation cases")
 
+formula<-formula_compare(x="outcomes_continus",y="grup",taulavariables = conductor_variables)
+
+descrTable(formula,data=dades_completes,show.p.overall = F, extra.labels=c("",""), show.n = T,method = 2) %>% 
+  export2md(caption = "Mean reduction of HbA1c and body weight, complete cases")
+
+descrTable(formula,data=dades %>% filter(.imp>0),show.p.overall = F,extra.labels=c("",""),show.n = T,method = 2) %>% 
+  export2md(caption = "Mean reduction of HbA1c and body weight, imputation cases")
+
 
 ```
 
@@ -253,11 +312,19 @@ descrTable(formula,data=dades %>% filter(.imp>0),show.p.overall = F,extra.labels
 ```{r, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
 # Ara fer-ho de cada grup respecte la resta 
 
-# 1. DESCRIPTIVA
+# 1. DESCRIPTIVA (Media)
 formula_temp<-formula_compare("table6",y="grup",taulavariables = conductor_variables)
 temp_comp<-compareGroups::descrTable(formula_temp,data=dades %>% filter(.imp==0),show.p.overall = F,show.n = T,extra.labels =c(""))
 # Descriptivo datos imputados:
 temp_imp <-compareGroups::descrTable(formula_temp,data=dades %>% filter(.imp>0),show.p.overall = F,show.n = T,extra.labels =c(""))
+cbind("Complete case Analysis" = temp_comp, "Imputation cases analysis (m=10)" = temp_imp) %>% export2md()
+
+
+# 1. DESCRIPTIVA (Mediana)
+formula_temp<-formula_compare("table6",y="grup",taulavariables = conductor_variables)
+temp_comp<-compareGroups::descrTable(formula_temp,data=dades %>% filter(.imp==0),show.p.overall = F,show.n = T,extra.labels =c("","",""),method=2)
+# Descriptivo datos imputados:
+temp_imp <-compareGroups::descrTable(formula_temp,data=dades %>% filter(.imp>0),show.p.overall = F,show.n = T,extra.labels =c("","",""),method=2)
 cbind("Complete case Analysis" = temp_comp, "Imputation cases analysis (m=10)" = temp_imp) %>% export2md()
 
 
@@ -298,6 +365,14 @@ temp_imp <-compareGroups::descrTable(formula_temp,data=dades %>% filter(.imp>0),
 cbind("Complete case Analysis" = temp_comp, "Imputation cases analysis (m=10)" = temp_imp) %>% export2md()
 
 
+
+formula_temp<-formula_compare("table7",y="grup",taulavariables = conductor_variables)
+temp_comp<-compareGroups::descrTable(formula_temp,data=dades %>% filter(.imp==0),show.p.overall = F,show.n = T,extra.labels =c("",""),method = 2)
+# Descriptivo datos imputados:
+temp_imp <-compareGroups::descrTable(formula_temp,data=dades %>% filter(.imp>0),show.p.overall = F,show.n = T,extra.labels =c("",""),method = 2)
+cbind("Complete case Analysis" = temp_comp, "Imputation cases analysis (m=10)" = temp_imp) %>% export2md()
+
+
 ```
 
 ### Resultado 3.2. Comparativo 
@@ -324,9 +399,15 @@ taula_estimacions3_ISGLT2 %>% kable(digits = 3,caption = "Estimaciones del grupo
 ```{r, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
 
 formula_temp<-formula_compare("table8",y="grup",taulavariables = conductor_variables)
-temp_comp<-compareGroups::descrTable(formula_temp,data=dades %>% filter(.imp==0),show.p.overall = F,show.n = T,extra.labels =c(""))
+temp_comp<-compareGroups::descrTable(formula_temp,data=dades %>% filter(.imp==0),show.p.overall = F,show.n = T,extra.labels =c(""),show.all = T)
 # Descriptivo datos imputados:
-temp_imp <-compareGroups::descrTable(formula_temp,data=dades %>% filter(.imp>0),show.p.overall = F,show.n = T,extra.labels =c(""))
+temp_imp <-compareGroups::descrTable(formula_temp,data=dades %>% filter(.imp>0),show.p.overall = F,show.n = T,extra.labels =c(""),show.all = T)
+cbind("Complete case Analysis" = temp_comp, "Imputation cases analysis (m=10)" = temp_imp) %>% export2md()
+
+formula_temp<-formula_compare("table8",y="grup",taulavariables = conductor_variables)
+temp_comp<-compareGroups::descrTable(formula_temp,data=dades %>% filter(.imp==0),show.p.overall = F,show.n = T,extra.labels =c("",""),method = 2,show.all = T)
+# Descriptivo datos imputados:
+temp_imp <-compareGroups::descrTable(formula_temp,data=dades %>% filter(.imp>0),show.p.overall = F,show.n = T,extra.labels =c("",""),method = 2,show.all = T)
 cbind("Complete case Analysis" = temp_comp, "Imputation cases analysis (m=10)" = temp_imp) %>% export2md()
 
 
@@ -362,6 +443,7 @@ taula_percentatge_stops
 survminer::ggsurvplot(cfit, data = dades_completes,
                       main = "Survival curve",
                       title= "Suspensions/dropouts during follow-up before 24 months",
+                      legend.labs = c("IDPP4","SGLT-2i","SU"),
                       size = 0.5,
                       ylim = c(0,1),
                       xlim = c(0,730),
@@ -370,6 +452,18 @@ survminer::ggsurvplot(cfit, data = dades_completes,
                       risk.table = F,
                       censor.shape="|", censor.size = 1)
 
+
+survminer::ggsurvplot(cfit, data = dades_completes,
+                      legend.labs = c("IDPP4","SGLT-2i","SU"),
+                      main = "Survival curve",
+                      title= "Suspensions/dropouts during follow-up before 24 months",
+                      size = 0.5,
+                      ylim = c(0,1),
+                      xlim = c(0,730),
+                      break.x.by=180,
+                      xlab = "Time in days",
+                      risk.table = T,
+                      censor.shape="|", censor.size = 1)
 
 descrTable(temps_fins_stop~grup,data=dades_completes,show.ratio = T) %>% 
   export2md()
@@ -388,7 +482,7 @@ descrTable(temps_fins_stop~grup,data=dades_completes,show.ratio = T) %>%
 # Generar taula
 formula_temp<-formula_compare("table10",y="grup",taulavariables = conductor_variables)
 
-compareGroups::descrTable(formula_temp,data=dades_completes,show.p.overall = F,hide = T) %>% export2md()
+compareGroups::descrTable(formula_temp,data=dades_completes,show.p.overall = F,hide = T,show.all = T) %>% export2md()
 
 
 
@@ -406,7 +500,7 @@ compareGroups::descrTable(formula_temp,data=dades_completes,show.p.overall = F,h
 
 dades_temp<-dades_completes %>% filter(HBA1C.valor324m>=7)
 formula<-formula_compare("tabla_basal",y="grup",taulavariables = conductor_variables)
-descrTable(formula,dades_temp,show.p.overall = F,show.all = T) %>% 
+descrTable(formula,dades_temp,show.p.overall = T,show.all = T) %>% 
   export2md(caption = "Comorbidity profile and baseline clinical characteristics by group")
 
 
@@ -423,7 +517,7 @@ descrTable(formula,dades_temp,show.p.overall = F,show.all = T) %>%
 
 
 formula<-formula_compare("tabla_basal",y="PESHB.dif324m.cat",taulavariables = conductor_variables)
-descrTable(formula,dades_completes,show.p.overall = F) %>% 
+descrTable(formula,dades_completes,show.p.overall = T) %>% 
   export2md(caption = "Clinical characteristics of patients who have the best results (Weight-HBA1C reduction vs No) before the end of follow-up")
 
 

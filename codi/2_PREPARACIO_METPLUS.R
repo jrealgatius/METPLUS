@@ -26,8 +26,8 @@
   
 # Lectura dades
   dades<-readRDS(fitxer_entrada)  
-  dt_historic_fd<-readRDS(here::here("dades/preparades","historic_fd.rds"))
-  dt_historic_fd_sgaps<-readRDS(here::here("dades/preparades","historic_fd_sgaps.rds"))
+  # dt_historic_fd<-readRDS(here::here("dades/preparades","historic_fd.rds"))
+  # dt_historic_fd_sgaps<-readRDS(here::here("dades/preparades","historic_fd_sgaps.rds"))
     
 
 # 1. Calculs i recodes de variables   ----------------------
@@ -128,18 +128,11 @@ dades<-dades %>%
 # 4. Matching per 3 grups  IDPP4,ISGLT2 ,SU  --------------------------
 
 #   4.1. Inicialització de paràmetres -----------
-
 caliper<-0.01
-formula<-formula_compare(x="match",y="grup",taulavariables = conductor_variables)
-taula1<-descrTable(formula,data=dades,show.all = T,show.n = T)
 
-formula<-formula_compare(x="table1",y="grup",taulavariables = conductor_variables)
-taula1.2<-descrTable(formula,data=dades,show.all = T,show.n = T)
-taula1.2
 
 # Selecciono dades per matching 
 dadesmatching<-selectorvariables(taula="dadesmatch",taulavariables = conductor_variables,dades)
-
 
 # Matching a subset 1 (ISGLT2 vs IDPP4)
 dades_sub1<-dadesmatching %>% filter(grup=="IDPP4" | grup=="ISGLT2")
@@ -226,12 +219,30 @@ rm(dades_temp)
 # Recode ps a 0 
 dades<-dades %>% mutate(ps=ifelse(is.na(ps),0,ps))
 
-flow_global2<-criteris_exclusio_diagrama(dades,taulavariables = conductor_variables,criteris = "excl2",
+flow_global2<-criteris_exclusio_diagrama(dades_prematch,taulavariables = conductor_variables,criteris = "excl2",
                                         etiquetes="excl2_lab",pob_lab = c("Population","N Final"),grups="grup",ordre = "exc_ordre")
 flow_global2
 
+
 rm(list=c("dt_historic_fd_sgaps","dt_historic_fd"))
 gc()
+
+
+# Generar taules pre  #####
+dades<-etiquetar_valors(dades,variables_factors = conductor_variables,fulla="value_labels",camp_etiqueta = "etiqueta")
+
+dades<-etiquetar(dades,taulavariables = conductor_variables)
+
+formula<-formula_compare(x="match",y="grup",taulavariables = conductor_variables)
+taula1<-descrTable(formula,data=dades,show.all = T,show.n = T)
+taula1
+
+formula<-formula_compare(x="table1",y="grup",taulavariables = conductor_variables)
+taula1.2<-descrTable(formula,data=dades,show.all = T,show.n = T)
+taula1.2
+
+rm(dt_historic_fd)
+rm(dt_historic_fd_sgaps)
 
 # 6. Salvar i carregar *.RData  ---------------------------
 
@@ -239,8 +250,11 @@ save.image(here::here("resultats","temp.Rdata"))
 
 load(here::here("resultats","temp.Rdata"))
 
-
 # 7. Ara seleccionar dades / fer descriptiva basal  -----------------------
+
+# Copia dades
+dades_prematch<-dades
+
 dades<-dades %>% filter(ps==1) %>% as_tibble()
 formula<-formula_compare(x="match",y="grup",taulavariables = conductor_variables)
 descrTable(formula,data=temp,show.all = T,show.n = T)
@@ -286,7 +300,6 @@ library(dplyr)
 # Actualitzar imatge 
 save.image(here::here("resultats","temp2.Rdata"))
 load(here::here("resultats","temp2.Rdata"))
-
 
 # 9. Calcular outcomes: (Reducció de HbA1c i Reducció de PES)  ---------------------
 # HBA1C.valor12m HBA1C.valor324m HBA1C.valor24m
@@ -436,13 +449,12 @@ MAP_ggplot_univariant(dades,datainicial = "dtindex",datafinal = "datafiOT",id="i
 descrTable(grup~STOP24m.FD+STOP12m.FD+STOP6m.FD, data=dades)
 dades %>% filter(str_detect(idp,"b7ed96f5dda")) %>% select(idp,dtindex,situacio,sortida,datafiOT,STOP.FD)
 
-
 # 8. Generar variables grup indicadora (en relació a la resta) ---------
 dades<-make_dummies(dades,"grup","grup_")
 
 
 # 9. Labels/ factoritzar   -------------
-dades<-etiquetar_valors(dades,variables_factors = conductor_variables,fulla="value_labels",camp_etiqueta = "etiqueta")
+# dades<-etiquetar_valors(dades,variables_factors = conductor_variables,fulla="value_labels",camp_etiqueta = "etiqueta")
 # 
 dades<-factoritzar.NO.YES(dades,columna = "factoritzar.yes.no",taulavariables = conductor_variables)
 dades<-factoritzar(dades,variables=extreure.variables("factoritzar",conductor_variables))
@@ -453,10 +465,12 @@ dades<-etiquetar(dades,taulavariables = conductor_variables,camp_descripcio = "d
 # Actualitzar conductor(fitxers xls --> xlsx)
 # ActualitzarConductor(dades,taulavariables = conductor_variables)
 
-
 # Actualitzar imatge 
 save.image(here::here("resultats","temp3.Rdata"))
 load(here::here("resultats","temp3.Rdata"))
+
+# Relevel grup
+dades<-dades %>% mutate(grup2=stats::relevel(grup,ref="ISGLT2"))
 
 
 # 11. Resultados 1  -----------------
@@ -479,6 +493,12 @@ taula_estimacions_GRUP<-llista_outcomes %>% purrr::map_df(
   ~extreure_resum_outcomes_imputation(dades,outcome=.x,grups="grup",v.ajust=vector_ajust)) %>% 
   filter(categoria!="(Intercept)") %>% select(-mean)
 
+taula_estimacions_GRUP_ref_ISGLT2<-llista_outcomes %>% purrr::map_df(
+  ~extreure_resum_outcomes_imputation(dades,outcome=.x,grups="grup2",v.ajust=vector_ajust)) %>% 
+  filter(categoria!="(Intercept)") %>% select(-mean)
+
+
+# Respecte global
 taula_estimacions_IDPP4<-llista_outcomes %>% purrr::map_df(
   ~extreure_resum_outcomes_imputation(dades,outcome=.x,grups="grup_IDPP4",v.ajust=vector_ajust)) %>% 
   filter(categoria!="(Intercept)") %>% select(-mean)
@@ -510,6 +530,11 @@ taula_estimacions2_GRUP<-llista_outcomes %>% purrr::map_df(
   ~extreure_resum_outcomes_imputation(dades,outcome=.x,grups="grup",v.ajust=vector_ajust)) %>% 
   filter(categoria!="(Intercept)") %>% select(-mean)
 
+taula_estimacions2_GRUP_ref_ISGLT2<-llista_outcomes %>% purrr::map_df(
+  ~extreure_resum_outcomes_imputation(dades,outcome=.x,grups="grup2",v.ajust=vector_ajust)) %>% 
+  filter(categoria!="(Intercept)") %>% select(-mean)
+
+
 taula_estimacions2_IDPP4<-llista_outcomes %>% purrr::map_df(
   ~extreure_resum_outcomes_imputation(dades,outcome=.x,grups="grup_IDPP4",v.ajust=vector_ajust)) %>% 
   filter(categoria!="(Intercept)") %>% select(-mean)
@@ -540,6 +565,10 @@ llista_outcomes<-extreure.variables("table7",taulavariables = conductor_variable
 
 taula_estimacions3_GRUP<-llista_outcomes %>% purrr::map_df(
   ~extreure_resum_outcomes_imputation(dades,outcome=.x,grups="grup",v.ajust=vector_ajust)) %>% 
+  filter(categoria!="(Intercept)") %>% select(-mean)
+
+taula_estimacions3_GRUP_ref_ISGLT2<-llista_outcomes %>% purrr::map_df(
+  ~extreure_resum_outcomes_imputation(dades,outcome=.x,grups="grup2",v.ajust=vector_ajust)) %>% 
   filter(categoria!="(Intercept)") %>% select(-mean)
 
 taula_estimacions3_IDPP4<-llista_outcomes %>% purrr::map_df(
@@ -668,22 +697,30 @@ compareGroups::descrTable(formula_temp,data=dades_completes,show.p.overall = F,h
 
 save.image(here::here("resultats","temp4.Rdata"))
 
-# load(here::here("resultats","temp4.Rdata"))
+load(here::here("resultats","temp4.Rdata"))
+
+flow_global2<-criteris_exclusio_diagrama(dades_prematch,taulavariables = conductor_variables,criteris = "excl2",
+                                         etiquetes="excl2_lab",pob_lab = c("Population","N Final"),grups="grup",ordre = "exc_ordre")
+flow_global2
+
 
 # 17 Salvar objectes ----------
 # output_Rdata<-"Output_metplus.RData"
 save(dades,dades_completes,flow_global,flow_global2,taula1,taula1.2,taulaPS,
-
+     
+     taula_estimacions_GRUP_ref_ISGLT2,
      taula_estimacions_GRUP,
      taula_estimacions_IDPP4,
      taula_estimacions_SU,
      taula_estimacions_ISGLT2,
      
+     taula_estimacions2_GRUP_ref_ISGLT2,
      taula_estimacions2_GRUP,
      taula_estimacions2_IDPP4,
      taula_estimacions2_SU,
      taula_estimacions2_ISGLT2,
      
+     taula_estimacions3_GRUP_ref_ISGLT2,
      taula_estimacions3_GRUP,
      taula_estimacions3_IDPP4,
      taula_estimacions3_SU,
@@ -692,8 +729,6 @@ save(dades,dades_completes,flow_global,flow_global2,taula1,taula1.2,taulaPS,
      taula_adhrecia_GRUP,
      
      file=here::here("resultats",output_Rdata))
-
-
 
 
 
