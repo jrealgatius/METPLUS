@@ -1,10 +1,19 @@
+---
+title: 'eControl Met +: Study about the results of the addition of a sulfonylurea, DPP4 inhibitors or SGLT2 inhibitors as a second antidiabetic drug in patients with diabetes mellitus type 2 in treatment with metformin and insufficient glycemic control'
 
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+
+---
+
+
+```{r}
 gc()
 rm(list=ls())
 
-load("dades/preparades/dadesmapeig.RData")
+library(lubridate)
 
 
+load(here::here("dades/preparades/dadesmapeig.RData"))
 
 #   SOURCE
 # CArrego funcions -------------------
@@ -13,7 +22,7 @@ devtools::source_url(link_source)
 
 LLEGIR.CLINIQUES<-function(n=Nmostra) {
   readRDS(directori_de_dades %>% here::here("METPLUS_entregable_variables_analitiques_20181126_190346.rds"))%>% as_tibble() %>% head(n) }
-# 
+
 # LLEGIR.FX.FACTURATS<-function(n=Nmostra) {
 #   readRDS(directori_de_dades %>% here::here("METPLUS_entregable_farmacs_facturats_20181126_190346.rds"))%>% as_tibble() %>% head(n) }
 # 
@@ -21,22 +30,28 @@ LLEGIR.CLINIQUES<-function(n=Nmostra) {
 #   readRDS(directori_de_dades %>% here::here("METPLUS_entregable_farmacs_prescrits_20181126_190346.rds"))%>% as_tibble() %>% head(n) }
 # 
 
-library(lubridate)
 
+```
+
+
+```{r funcions}
 # Convertir facturats --> prescrits a 30 dies per envas 
 formatar_facturats<-function(dt=dt_facturats) {
   dt<-dt %>%
     mutate(dat=lubridate::ymd(paste0(as.character(dat),"15")),dbaixa=dat+(30*env),
            dat=data.to.string(dat) %>% as.numeric(),
            dbaixa=data.to.string(dbaixa) %>% as.numeric())
-  dt
-}
+  dt}
 
 formatar_prescrits<-function(dades=dt_prescrits) {
   agregar_solapaments_gaps(dt=dades,id="idp",datainici =
                              "dat",datafinal = "dbaixa",gap=0)
-}
+  }
 
+```
+
+
+```{r}
 
 # Lectura i formateig de dades facturació i prescripció
 dt_facturats<-dt_facturats %>% semi_join(conductor_farmacs,by="cod") %>% 
@@ -51,6 +66,11 @@ dt_prescrits<- dt_prescrits %>% semi_join(conductor_farmacs,by="cod") %>%
   transmute(idp,agr=GRUP,dat=ymd(dat),dbaixa=ymd(dbaixa))
 
 
+```
+
+
+```{r}
+
 # Afegeixo dades de dades com la data index i data fi i data fiOT i grup 
 dt_cliniques_historic<-dt_cliniques_historic %>% 
   left_join(select(dades,idp,dtindex,grup,datafi_seguiment,datafiOT,HBA1C.valor,HBA1C.valor,HBA1C.valor324m))
@@ -58,9 +78,13 @@ dt_cliniques_historic<-dt_cliniques_historic %>%
 # Seleccionar N individus i Agregador HBA1c
 dt_individus<-dt_cliniques_historic %>% 
   filter(agr=="HBA1C") 
-  
-# Mapejar historics d'un pacient + info extra periode ITT periode OT 
 
+```
+
+
+```{r funcio_mapeig}
+
+# Mapejar historics d'un pacient + info extra periode ITT periode OT 
 
 ### Funció que retorna un gràfic amb l'evolució de la HB  el periode ITT el periode OT i els farmacs
   
@@ -101,7 +125,29 @@ mapeig_metplus<-function(set_seed=1){
 
 
 
+```
+
+
+```{r}
+
 mapeig_metplus()
+
+mapeig_metplus()
+
+mapeig_metplus()
+
+mapeig_metplus()
+
+mapeig_metplus()
+
+mapeig_metplus()
+
+
+
+```
+
+
+
 
 
 

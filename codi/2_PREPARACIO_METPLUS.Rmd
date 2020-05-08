@@ -1,43 +1,77 @@
+---
+params:
+  analisis_OT: no
+  mostra: test
+  nivell_conf: 0.98
+---
+
 #  FASE: Preparació      ---------------------
-#
-#
+
+
+```{r setup}
+knitr::opts_chunk$set(message = FALSE, warning = FALSE)
 # 0. Directori de treball / càrrega de funcions    --------------
 
+# Lectura de dades
+gc()
+
+link_source<-paste0("https://github.com/jrealgatius/Stat_codis/blob/master/funcions_propies.R","?raw=T")
+devtools::source_url(link_source)
+
+source(here::here("codi","global_metplus.R"))  
+
+library(lubridate)
+library(dplyr)
+library(cobalt)
+conductor_variables<-here::here("variables_metplus.xls")
+
+# CAnviar directori d'entrada / sortida
+
+if (params$mostra=="test") {
+  dir_dades<-"dades/preparades_test" 
+  dir_resultats<-"resultats/test" 
+  num_imputacions<-2 # Normalment >=10
+  num_iteracions<-2 # Normalment 5
+
+  } else {
+    dir_dades<-"dades/preparades" 
+    dir_resultats<-"resultats"
+    num_imputacions<-10 # Normalment >=10
+    num_iteracions<-5 # Normalment 5
+
+        }
+
+# Canviar nom de l'arxiu en funció OT / ITT
+
+if (params$analisis_OT) arxiudades<-"BD_METPLUS_OT.rds" else arxiudades<-"BD_METPLUS_ITT.rds"
+
+# Canviar nom d'output 
+if (params$analisis_OT) output<-"Output_metplusOT.RData" else output<-"Output_metplusITT.RData"
 
 
-  #
-  # Lectura de dades     
-  
-  # memory.size(max=160685)
-  #
-  #   SOURCE
-  # rm(list=ls())
-  # 
-  # link_source<-paste0("https://github.com/jrealgatius/Stat_codis/blob/master/funcions_propies.R","?raw=T")
-  # devtools::source_url(link_source)
-  
-  gc()
 
+```
+
+
+# Lectura
+
+```{r}
 
 # 0. Lectura de dades          -----------------------------
 
-  # fitxersortida
-  fitxer_entrada<-fitxersortida
-  
 # Lectura dades
-  dades<-readRDS(fitxer_entrada)  
-  # dt_historic_fd<-readRDS(here::here("dades/preparades","historic_fd.rds"))
-  # dt_historic_fd_sgaps<-readRDS(here::here("dades/preparades","historic_fd_sgaps.rds"))
+  dades<-readRDS(here::here(dir_dades,arxiudades))
+  # dt_historic_fd<-readRDS(here::here(dir_dades,"historic_fd.rds"))
+  # dt_historic_fd_sgaps<-readRDS(here::here(dir_dades,"historic_fd_sgaps.rds"))
     
+```
+
+
 
 # 1. Calculs i recodes de variables   ----------------------
 
-library(lubridate)
-library(cobalt)
-library(grid)
-library(gridExtra)
-library(ggplot2)
-  
+```{r}
+
 #   dtindex ---> data --------------
 
 dades<-dades %>% mutate(dtindex=as_date(dtindex))
@@ -68,7 +102,12 @@ dades<- dades %>%
   mutate (any_dtindex=year(dtindex),
           Q_dtindex=quarter(dtindex,with_year = T)) 
 
+
+```
+
 # 2. Criteris d'inclusió  --------------
+
+```{r}
 
 # 1.1 Metformina
 
@@ -94,6 +133,12 @@ dades<-dades %>% mutate (inclusio_edat18=ifelse(edat>=18,1,0))
 #   Inclusió 4: Pes not missing ----------
 dades<-dades %>% mutate (inclusio_pes=ifelse(!is.na(PESO.valor),1,0))
 
+```
+
+# Recodes 
+
+```{r}
+
 # Diagnostics basals (Recode)
 # NA --> 0 (Else=1) (No hi ha 0)
 dades<-dades %>% mutate_at(vars(starts_with("DG.")), 
@@ -108,16 +153,28 @@ dades<-dades %>% mutate(DG.Ncomorb.cat3=case_when(
   DG.Ncomorb==0~"None",
   DG.Ncomorb==1 | DG.Ncomorb==2~"1-2",
   DG.Ncomorb>=3~">3"))
+```
 
-# 3. Aplicar criteris d'inclusió  ------------------------
+
+# 3. Aplicar criteris d'inclusió  
+
+```{r}
 
 # Faig copia per despres fer flow-chart amb totes les dades 
 dadesinicials<-dades
 dades<-dades %>% filter(inclusio_met==1 & inclusio_HB7==1 & inclusio_edat18==1 & inclusio_pes==1)
 
+```
+
+# Recodes 
+
+```{r}
+
 # Recodificar edat
 dades<-recodificar(dades,taulavariables = conductor_variables,criteris = "recode",missings = F)
 dades<-recodificar(dades,taulavariables = conductor_variables,criteris = "recode_mis",missings = T)
+
+
 
 # Falta generació de quartils Pes
 dades<-dades %>% 
@@ -127,7 +184,11 @@ dades<-dades %>%
 dades<-dades %>% 
   mutate(anys_DM.Q5=Hmisc::cut2(anys_DM,g=5))
 
+```
+
 # 4. Matching per 3 grups  IDPP4,ISGLT2 ,SU  --------------------------
+
+```{r}
 
 #   4.1. Inicialització de paràmetres -----------
 caliper<-0.01
@@ -171,6 +232,11 @@ dades_sub1<-data.table(dades_sub1,ps1=m.out$weights) %>% as_tibble
 dadesmatching<-dadesmatching %>% left_join(
   select(dades_sub1,idp,ps1),by="idp") 
 
+```
+
+
+```{r}
+
 # Ara fer matching 2 --- Selecciono subset + 3 grup (SU)
 dadesmatching<-dadesmatching %>% filter(ps1==1 | grup=="SU")
 
@@ -196,25 +262,22 @@ m.out<-matchit(formulaPS,method="nearest",data=as.data.frame(dades_sub1),caliper
 b3<-cobalt::bal.tab(formulaPS,data=dades_sub1)
 v1<-cobalt::var.names(b3,type = "vec",minimal = TRUE)  # Extreure variables
 v1<-etiquetar_vector(v1,taulavariables = conductor_variables) # Etiquetar i posar variables
+
 plot_ISGLT2_SU<-cobalt::love.plot(m.out,var.names = v1,thresholds = c(m=.1), 
-                                      sample.names = c("Unmatched", "Matched"),limits=c(-0.5,2),position = "top",title = "SGLT-2i vs SU group")
+                sample.names = c("Unmatched", "Matched"),limits=c(-0.5,2),position = "top",title = "SGLT-2i vs SU group")
 
-# PANEL PLOT I Salvar plot panel plot tiff / png
-plot_ISGLT2_SU <-plot_ISGLT2_SU +  theme(axis.title.y = element_blank(), axis.text.y = element_blank(), axis.ticks.y = element_blank())
-plot_Covariable<-gridExtra::grid.arrange(plot_ISGLT2_IDPP41, plot_ISGLT2_SU,
-                        ncol = 2,nrow=1,
-                        top=textGrob("Covariate Balance"))
-ggsave("resultats/figure_covariate.tiff",plot_Covariable)
-ggsave("resultats/figure_covariate.png",plot_Covariable)
 
+```
+
+
+```{r}
 # m.out<-matchit(formulaPS,method="nearest",data=dades_sub1,caliper=caliper,ratio=1)
 # Afegeixo a dades_H la variable PS 
 dades_sub1<-data.table(dades_sub1,ps2=m.out$weights) %>% as_tibble
 #
 # Fusiono en dadesmatching la variable ps indicadora
 
-dadesmatching<-dadesmatching %>% left_join(
-  select(dades_sub1,idp,ps2),by="idp")
+dadesmatching<-dadesmatching %>% left_join(select(dades_sub1,idp,ps2),by="idp")
 
 dadesmatching<-dadesmatching %>% mutate(ps=case_when(ps1==1~1,
                                                      ps2==1~1,
@@ -225,29 +288,38 @@ temp=dadesmatching %>% filter(ps==1)
 
 formula<-formula_compare(x="match",y="grup",taulavariables = conductor_variables)
 taulaPS<-descrTable(formula,data=temp,show.all = T,show.n = T)
-taulaPS
+# taulaPS
 
 #   4.2. Afegir PS indicadora  -------------------
 dades<-dades %>%  left_join(select(dadesmatching,c(idp,ps)),by="idp")
 dadesinicials<-dadesinicials %>%  left_join(select(dadesmatching,c(idp,ps)),by="idp") 
 
 # Verificació de matching 
-formula<-formula_compare(x="table1",y="grup",taulavariables = conductor_variables)
-descrTable(formula,data=dades %>% filter(ps==1),show.all = T,show.n = T)
+# formula<-formula_compare(x="table1",y="grup",taulavariables = conductor_variables)
+# descrTable(formula,data=dades %>% filter(ps==1),show.all = T,show.n = T)
 
 
 # Fi matching 
 rm(dades_sub1,dadesmatching,taula2)
 
 
+```
+
+
+```{r}
+
 # 5. Generar flowcharts desde dadesinicials (Excloc no metformina previa i menors de 18 anys) --------------
 dades_temp<-dadesinicials %>% filter(inclusio_met==1 & inclusio_edat18==1)
 flow_global<-criteris_exclusio_diagrama(dades_temp,taulavariables = conductor_variables,criteris = "exclusio",
                                     etiquetes="exc_lab",pob_lab = c("Population","N Final"),grups="grup",ordre = "exc_ordre",sequencial = T)
 
-flow_global
+# flow_global
 rm(dades_temp)
 
+```
+
+
+```{r}
 # Recode ps a 0 
 dades<-dades %>% mutate(ps=ifelse(is.na(ps),0,ps))
 
@@ -259,8 +331,13 @@ dades<-dades %>% mutate(ps=ifelse(is.na(ps),0,ps))
 rm(list=c("dt_historic_fd_sgaps","dt_historic_fd"))
 gc()
 
+```
+
 
 # Generar taules pre  #####
+
+```{r}
+
 dades<-etiquetar_valors(dades,variables_factors = conductor_variables,fulla="value_labels",camp_etiqueta = "etiqueta")
 dades<-etiquetar(dades,taulavariables = conductor_variables)
 
@@ -272,16 +349,32 @@ formula<-formula_compare(x="table1",y="grup",taulavariables = conductor_variable
 taula1.2<-descrTable(formula,data=dades,show.all = T,show.n = T)
 taula1.2
 
-rm(dt_historic_fd)
-rm(dt_historic_fd_sgaps)
+# rm(dt_historic_fd)
+# rm(dt_historic_fd_sgaps)
+
+save.image(here::here(dir_resultats,"temp.Rdata"))
+
+
+```
+
+
 
 # 6. Salvar i carregar *.RData  ---------------------------
 
-save.image(here::here("resultats","temp.Rdata"))
+```{r}
 
-load(here::here("resultats","temp.Rdata"))
+
+
+# load(here::here(dir_resultats,"temp.Rdata"))
+
+
+
+```
+
 
 # 7. Ara seleccionar dades / fer descriptiva basal  -----------------------
+
+```{r}
 
 # Copia dades
 dades_prematch<-dades
@@ -290,7 +383,13 @@ dades<-dades %>% filter(ps==1) %>% as_tibble()
 formula<-formula_compare(x="match",y="grup",taulavariables = conductor_variables)
 descrTable(formula,data=temp,show.all = T,show.n = T)
 
+
+```
+
+
 # 8. Fer IMPUTACIO I GUARDAR LONG + DATASET INICIAL  ----------------------
+
+```{r, message=FALSE}
 
 # Mice metode
 library(mice)
@@ -300,9 +399,10 @@ variables_a_imputar<-extreure.variables("imp4",taulavariables = conductor_variab
 dades_imputation<-dades %>% select("idp",variables_a_imputar)
 dades_no_imputades<-dades %>% select(-variables_a_imputar,"idp")
 
+
 # Aplico model d'imputació  (Genero les dades imputades)  ----------
-num_imputacions<-10 # Normalment >=10
-num_iteracions<-5 # Normalment 5
+# num_imputacions<-10 # Normalment >=10
+# num_iteracions<-5 # Normalment 5
 # Generar imputacions
 start_time <- Sys.time()
 # mice(data=dades_imputation,m=num_imputacions,maxit=5,meth='pmm',seed=123,remove.collinear=T)
@@ -322,19 +422,31 @@ dades<-data_long_total %>% left_join(dades_no_imputades,by="idp")
 miceData<-as.mids(data_long_total)
 
 # Verificar imputació i missings  ----------------
-descrTable(~.,data=data_long,method = 2,Q1=0,Q3=1)
-descrTable(~.,data=dades_imputation,method = 2,Q1=0,Q3=1)
+# descrTable(~.,data=data_long,method = 2,Q1=0,Q3=1)
+# descrTable(~.,data=dades_imputation,method = 2,Q1=0,Q3=1)
+
+save.image(here::here(dir_resultats,"temp2.Rdata"))
+
+```
+
+
+
+```{r}
+
+# Actualitzar imatge / Carregar imatge
+
+# load(here::here(dir_resultats,"temp2.Rdata"))
+
+
+```
 
 # Evaluació d'outcome entre grups: 
-library(dplyr)
-
-# Actualitzar imatge 
-save.image(here::here("resultats","temp2.Rdata"))
-load(here::here("resultats","temp2.Rdata"))
 
 # 9. Calcular outcomes: (Reducció de HbA1c i Reducció de PES)  ---------------------
 # HBA1C.valor12m HBA1C.valor324m HBA1C.valor24m
-library(dplyr)
+
+```{r}
+
 dades<-dades %>% mutate (
   HBA1C.dif324m=HBA1C.valor-HBA1C.valor324m,
   HBA1C.dif324m.cat=if_else(HBA1C.dif324m>0.5,1,0),                
@@ -347,6 +459,7 @@ dades<-dades %>% mutate (
 # 9.1. Calcular reduccions de PAS COLHDL.valor COLLDL.valor COLTOT.valor TG.valor
 dades<-dades %>% mutate (
   PAS.dif324m=PAS.valor-PAS.valor324m,
+  PAD.dif324m=PAD.valor-PAD.valor324m,
   COLHDL.dif324m=COLHDL.valor-COLHDL.valor324m,
   COLLDL.dif324m=COLLDL.valor-COLLDL.valor324m,
   COLTOT.dif324m=COLTOT.valor-COLTOT.valor324m,
@@ -358,8 +471,12 @@ dades<-dades %>% mutate (
 dades<-dades %>% mutate_at(vars(starts_with("NenvasTX.")), 
                            funs(if_else(is.na(.),0,.))) 
 
+```
+
 
 # 9.3. Unifico numero d'envasos i temps de tractament per cada grup
+
+```{r}
 
 # Nombre d'envasos per grup d'estudi
 dades<-dades %>% 
@@ -384,7 +501,13 @@ dades<-dades %>% mutate(MPR.TX.cat=case_when(MPR.TX>0.8 ~"Yes",
                                   is.na(MPR.TX)~"NA"))
 
 
+```
+
+
+
 # 9.6. Calculo data STOP  del grup que inicia
+
+```{r}
 dades<-dades %>% mutate(STOP.FD.GRUP=case_when(
   grup=="IDPP4" ~STOP.FD.IDPP4,
   grup=="SU" ~STOP.FD.SU,
@@ -406,9 +529,17 @@ dades<-dades %>% mutate (datafi_seguiment=case_when(
   mutate (datafi_seguiment=if_else(datafi_seguiment<dtindex,dtindex,datafi_seguiment)) %>%  # Si datafi<dtindex igualarlo (No negatius)
   mutate(temps_seguiment=datafi_seguiment-dtindex)
 
+
+```
+
+
 # Verificar data de sortida
-MAP_ggplot_univariant(dades,datainicial = "dtindex",datafinal = "datafi_seguiment",add_final = "situacio",Nmostra = 10,id="idp")
-dades %>% as_tibble() %>% filter (lubridate::ymd(sortida)<=dtindex) %>% select(dtindex,sortida,situacio,HBA1C.valor324m)
+
+```{r}
+
+
+# MAP_ggplot_univariant(dades,datainicial = "dtindex",datafinal = "datafi_seguiment",add_final = "situacio",Nmostra = 10,id="idp")
+# dades %>% as_tibble() %>% filter (lubridate::ymd(sortida)<=dtindex) %>% select(dtindex,sortida,situacio,HBA1C.valor324m)
 
 
 # Existeix STOP tractament si aquest es 92 dies previs a la data fi de seguiment
@@ -419,9 +550,15 @@ dades<-dades %>% as_tibble() %>%
     STOP.FD.GRUP<datafi_seguiment-92~1,
     STOP.FD.GRUP>=datafi_seguiment-92~0))
 
-MAP_ggplot_univariant(dades,datainicial = "dtindex",datafinal = "STOP.FD.GRUP",add_point = "datafi_seguiment",add_final = "STOP.FD",Nmostra = 10,id="idp")
+# MAP_ggplot_univariant(dades,datainicial = "dtindex",datafinal = "STOP.FD.GRUP",add_point = "datafi_seguiment",add_final = "STOP.FD",Nmostra = 10,id="idp")
+
+
+```
+
 
 # STOPS a 6,12,24 mesos durant el seguiment entre grups  -------------------
+
+```{r}
 
 # Curva survfit STOP tractament 
 
@@ -450,9 +587,15 @@ dades<-dades %>% mutate(
     TRUE~NA_character_))
 
 
+
+```
+
+
 # 7.2. Calcular datafi OT On treatment (datafiOT)  ----------------
 # Definition of follow-up period and premature discontinuation
 # Death, the switch or addition of a new antidiabetic treatment, last billing of study drugs before 24 months after prescription, transfers to non-ICS centers.
+
+```{r}
 
 # CanviTx (data minima de totes)
 dades<-dades %>% mutate(datafiOT= case_when(
@@ -465,9 +608,9 @@ dades<-dades %>% mutate(datafiOT=ifelse(is.na(datafiOT),dtindex,datafiOT),
                         datafiOT=lubridate::as_date(datafiOT))
 
 # Verificar mitjançant map
-MAP_ggplot_univariant(dades,datainicial = "dtindex",datafinal = "STOP.FD.GRUP",add_point = "datafiOT",id="idp",Nmostra = 10)
-
-MAP_ggplot_univariant(dades,datainicial = "dtindex",datafinal = "datafiOT",add_point = "STOP.FD.GRUP",id="idp",Nmostra = 10)
+# MAP_ggplot_univariant(dades,datainicial = "dtindex",datafinal = "STOP.FD.GRUP",add_point = "datafiOT",id="idp",Nmostra = 10)
+# 
+# MAP_ggplot_univariant(dades,datainicial = "dtindex",datafinal = "datafiOT",add_point = "STOP.FD.GRUP",id="idp",Nmostra = 10)
 
 # Actualitzar a maxim 24 mesos (730 dies) o fi de seguiment (exitus/trasllat/31122017)
 dades<-dades %>% 
@@ -475,12 +618,20 @@ dades<-dades %>%
     datafiOT-dtindex>=730 ~ pmin(dtindex+730,datafi_seguiment),
     datafiOT-dtindex<=730 ~ pmin(datafiOT,datafi_seguiment)))
 
+```
+
 # Verificar dades 
-MAP_ggplot_univariant(dades,datainicial = "dtindex",datafinal = "datafiOT",id="idp",Nmostra = 20,add_point = "datafi_seguiment",add_final = "situacio")
-descrTable(grup~STOP24m.FD+STOP12m.FD+STOP6m.FD, data=dades)
-dades %>% filter(str_detect(idp,"b7ed96f5dda")) %>% select(idp,dtindex,situacio,sortida,datafiOT,STOP.FD)
+
+```{r}
+
+# MAP_ggplot_univariant(dades,datainicial = "dtindex",datafinal = "datafiOT",id="idp",Nmostra = 20,add_point = "datafi_seguiment",add_final = "situacio")
+
+# descrTable(grup~STOP24m.FD+STOP12m.FD+STOP6m.FD, data=dades)
+
+# dades %>% filter(str_detect(idp,"b7ed96f5dda")) %>% select(idp,dtindex,situacio,sortida,datafiOT,STOP.FD)
 
 # 8. Generar variables grup indicadora (en relació a la resta) ---------
+
 dades<-make_dummies(dades,"grup","grup_")
 
 
@@ -492,65 +643,99 @@ dades<-factoritzar(dades,variables=extreure.variables("factoritzar",conductor_va
 #
 dades<-etiquetar(dades,taulavariables = conductor_variables,camp_descripcio = "descripcio")
 
+save.image(here::here(dir_resultats,"temp3.Rdata"))
 
-# Actualitzar conductor(fitxers xls --> xlsx)
-# ActualitzarConductor(dades,taulavariables = conductor_variables)
+```
 
 # Actualitzar imatge 
-save.image(here::here("resultats","temp3.Rdata"))
-load(here::here("resultats","temp3.Rdata"))
+
+```{r}
+
+
+# load(here::here(dir_resultats,"temp3.Rdata"))
 
 # Relevel grup
 dades<-dades %>% mutate(grup2=stats::relevel(grup,ref="ISGLT2"))
 
+```
+
+
+```{r}
 
 # 11. Resultados 1  -----------------
 
 # 11.1 DESCRIPTIU outcomes dades completes vs dades imputades
-formula_temp<-formula_compare("outcomes1",y="grup",taulavariables = "variables_metplus.xls")
+formula_temp<-formula_compare("outcomes1",y="grup",taulavariables = conductor_variables)
 temp_comp<-compareGroups::descrTable(formula_temp,data=dades %>% filter(.imp==0),show.p.overall = F,show.n = T,extra.labels =c(""))
 # Descriptivo datos imputados:
 temp_imp <-compareGroups::descrTable(formula_temp,data=dades %>% filter(.imp>0),show.p.overall = F,show.n = T,extra.labels =c(""))
 cbind("Complete case Analysis" = temp_comp, "Imputation cases analysis (m=10)" = temp_imp)
 
 
+```
+
 # 11.2 COMPARATIVA d'outcomes principals (Respecte un grup de referencia IDPP4 i respecte la resta)
+
+## Estimacions d'efectes de tractaments 2 a 2 (Coeficients)
+
+
+```{r, message=FALSE,warnings=FALSE}
+
+level_conf<-params$nivell_conf
+
 vector_ajust<-extreure.variables("v.ajust",conductor_variables)
 
 # Mesures d'asociació per cada outcome 
 llista_outcomes<-extreure.variables("outcomes1",taulavariables = conductor_variables)
 
 taula_estimacions_GRUP<-llista_outcomes %>% purrr::map_df(
-  ~extreure_resum_outcomes_imputation(dades,outcome=.x,grups="grup",v.ajust=vector_ajust)) %>% 
+  ~extreure_resum_outcomes_imputation(dades,outcome=.x,grups="grup",v.ajust=vector_ajust,level_conf = level_conf)) %>% 
   filter(categoria!="(Intercept)") %>% select(-mean)
 
 taula_estimacions_GRUP_ref_ISGLT2<-llista_outcomes %>% purrr::map_df(
-  ~extreure_resum_outcomes_imputation(dades,outcome=.x,grups="grup2",v.ajust=vector_ajust)) %>% 
+  ~extreure_resum_outcomes_imputation(dades,outcome=.x,grups="grup2",v.ajust=vector_ajust,level_conf = level_conf)) %>% 
   filter(categoria!="(Intercept)") %>% select(-mean)
 
+
+```
+
+## Estimacions 1 vs (2+3)  2 vs (1+3)
+
+```{r}
 
 # Respecte global
 taula_estimacions_IDPP4<-llista_outcomes %>% purrr::map_df(
-  ~extreure_resum_outcomes_imputation(dades,outcome=.x,grups="grup_IDPP4",v.ajust=vector_ajust)) %>% 
+  ~extreure_resum_outcomes_imputation(dades,outcome=.x,grups="grup_IDPP4",v.ajust=vector_ajust,level_conf = level_conf)) %>% 
   filter(categoria!="(Intercept)") %>% select(-mean)
 
 taula_estimacions_SU<-llista_outcomes %>% purrr::map_df(
-  ~extreure_resum_outcomes_imputation(dades,outcome=.x,grups="grup_SU",v.ajust=vector_ajust)) %>% 
+  ~extreure_resum_outcomes_imputation(dades,outcome=.x,grups="grup_SU",v.ajust=vector_ajust,level_conf = level_conf)) %>% 
   filter(categoria!="(Intercept)") %>% select(-mean)
 
 taula_estimacions_ISGLT2<-llista_outcomes %>% purrr::map_df(
-  ~extreure_resum_outcomes_imputation(dades,outcome=.x,grups="grup_ISGLT2",v.ajust=vector_ajust)) %>% 
+  ~extreure_resum_outcomes_imputation(dades,outcome=.x,grups="grup_ISGLT2",v.ajust=vector_ajust,level_conf = level_conf)) %>% 
   filter(categoria!="(Intercept)") %>% select(-mean)
 
 
+```
+
 # 12 Comparativa outcomes secundaris PAS (Resultados 2) --------------
 
+```{r}
+
 # 1. DESCRIPTIVA
-formula_temp<-formula_compare("table6",y="grup",taulavariables = "variables_metplus.xls")
+formula_temp<-formula_compare("table6",y="grup",taulavariables = conductor_variables)
 temp_comp<-compareGroups::descrTable(formula_temp,data=dades %>% filter(.imp==0),show.p.overall = F,show.n = T,extra.labels =c(""))
 # Descriptivo datos imputados:
 temp_imp <-compareGroups::descrTable(formula_temp,data=dades %>% filter(.imp>0),show.p.overall = F,show.n = T,extra.labels =c(""))
 cbind("Complete case Analysis" = temp_comp, "Imputation cases analysis (m=10)" = temp_imp)
+
+
+```
+
+## Outcomes secundaris PAS/PAD
+
+```{r, message=FALSE}
 
 # 2. COMPARATIVA D'OUTCOMES
 
@@ -558,63 +743,77 @@ cbind("Complete case Analysis" = temp_comp, "Imputation cases analysis (m=10)" =
 llista_outcomes<-extreure.variables("table6",taulavariables = conductor_variables)
 
 taula_estimacions2_GRUP<-llista_outcomes %>% purrr::map_df(
-  ~extreure_resum_outcomes_imputation(dades,outcome=.x,grups="grup",v.ajust=vector_ajust)) %>% 
+  ~extreure_resum_outcomes_imputation(dades,outcome=.x,grups="grup",v.ajust=vector_ajust,level_conf = level_conf)) %>% 
   filter(categoria!="(Intercept)") %>% select(-mean)
 
 taula_estimacions2_GRUP_ref_ISGLT2<-llista_outcomes %>% purrr::map_df(
-  ~extreure_resum_outcomes_imputation(dades,outcome=.x,grups="grup2",v.ajust=vector_ajust)) %>% 
+  ~extreure_resum_outcomes_imputation(dades,outcome=.x,grups="grup2",v.ajust=vector_ajust,level_conf = level_conf)) %>% 
   filter(categoria!="(Intercept)") %>% select(-mean)
 
 
 taula_estimacions2_IDPP4<-llista_outcomes %>% purrr::map_df(
-  ~extreure_resum_outcomes_imputation(dades,outcome=.x,grups="grup_IDPP4",v.ajust=vector_ajust)) %>% 
+  ~extreure_resum_outcomes_imputation(dades,outcome=.x,grups="grup_IDPP4",v.ajust=vector_ajust,level_conf = level_conf)) %>% 
   filter(categoria!="(Intercept)") %>% select(-mean)
 
 taula_estimacions2_SU<-llista_outcomes %>% purrr::map_df(
-  ~extreure_resum_outcomes_imputation(dades,outcome=.x,grups="grup_SU",v.ajust=vector_ajust)) %>% 
+  ~extreure_resum_outcomes_imputation(dades,outcome=.x,grups="grup_SU",v.ajust=vector_ajust,level_conf = level_conf)) %>% 
   filter(categoria!="(Intercept)") %>% select(-mean)
 
 taula_estimacions2_ISGLT2<-llista_outcomes %>% purrr::map_df(
-  ~extreure_resum_outcomes_imputation(dades,outcome=.x,grups="grup_ISGLT2",v.ajust=vector_ajust)) %>% 
+  ~extreure_resum_outcomes_imputation(dades,outcome=.x,grups="grup_ISGLT2",v.ajust=vector_ajust,level_conf = level_conf)) %>% 
   filter(categoria!="(Intercept)") %>% select(-mean)
 
 
+```
+
+
+```{r}
 # 13 Comparativa outcomes secundaris PAS (Resultados 3)
 
 # 1. DESCRIPTIVA
-
-formula_temp<-formula_compare("table7",y="grup",taulavariables = "variables_metplus.xls")
+formula_temp<-formula_compare("table7",y="grup",taulavariables = conductor_variables)
 temp_comp<-compareGroups::descrTable(formula_temp,data=dades %>% filter(.imp==0),show.p.overall = F,show.n = T,extra.labels =c(""))
 # Descriptivo datos imputados:
 temp_imp <-compareGroups::descrTable(formula_temp,data=dades %>% filter(.imp>0),show.p.overall = F,show.n = T,extra.labels =c(""))
 cbind("Complete case Analysis" = temp_comp, "Imputation cases analysis (m=10)" = temp_imp)
 
-# 2. COMPARATIVA 
+```
+
+
+
+## Outcomes secundarios 2 taula 7 
+
+```{r, message=FALSE, warning=FALSE}
 
 # Mesures d'asociació per cada outcome 
 llista_outcomes<-extreure.variables("table7",taulavariables = conductor_variables)
 
 taula_estimacions3_GRUP<-llista_outcomes %>% purrr::map_df(
-  ~extreure_resum_outcomes_imputation(dades,outcome=.x,grups="grup",v.ajust=vector_ajust)) %>% 
+  ~extreure_resum_outcomes_imputation(dades,outcome=.x,grups="grup",v.ajust=vector_ajust,level_conf = level_conf)) %>% 
   filter(categoria!="(Intercept)") %>% select(-mean)
 
 taula_estimacions3_GRUP_ref_ISGLT2<-llista_outcomes %>% purrr::map_df(
-  ~extreure_resum_outcomes_imputation(dades,outcome=.x,grups="grup2",v.ajust=vector_ajust)) %>% 
+  ~extreure_resum_outcomes_imputation(dades,outcome=.x,grups="grup2",v.ajust=vector_ajust,level_conf = level_conf)) %>% 
   filter(categoria!="(Intercept)") %>% select(-mean)
 
 taula_estimacions3_IDPP4<-llista_outcomes %>% purrr::map_df(
-  ~extreure_resum_outcomes_imputation(dades,outcome=.x,grups="grup_IDPP4",v.ajust=vector_ajust)) %>% 
+  ~extreure_resum_outcomes_imputation(dades,outcome=.x,grups="grup_IDPP4",v.ajust=vector_ajust,level_conf = level_conf)) %>% 
   filter(categoria!="(Intercept)") %>% select(-mean)
 
 taula_estimacions3_SU<-llista_outcomes %>% purrr::map_df(
-  ~extreure_resum_outcomes_imputation(dades,outcome=.x,grups="grup_SU",v.ajust=vector_ajust)) %>% 
+  ~extreure_resum_outcomes_imputation(dades,outcome=.x,grups="grup_SU",v.ajust=vector_ajust,level_conf = level_conf)) %>% 
   filter(categoria!="(Intercept)") %>% select(-mean)
 
 taula_estimacions3_ISGLT2<-llista_outcomes %>% purrr::map_df(
-  ~extreure_resum_outcomes_imputation(dades,outcome=.x,grups="grup_ISGLT2",v.ajust=vector_ajust)) %>% 
+  ~extreure_resum_outcomes_imputation(dades,outcome=.x,grups="grup_ISGLT2",v.ajust=vector_ajust,level_conf = level_conf)) %>% 
   filter(categoria!="(Intercept)") %>% select(-mean)
 
+
+```
+
 # 14 ADHERENCIA  Resultados 4 ------------------------
+
+```{r}
 extreure.variables("table8",taulavariables = conductor_variables)
 
 # Recodifico amb missings (No funciona amb tres categories)
@@ -626,23 +825,33 @@ dades$MPR.TX.cat<-relevel(dades$MPR.TX.cat,"No")
 formula<-formula_compare("table8",y="grup",taulavariables = conductor_variables)
 descrTable(formula,dades)
 
-formula_temp<-formula_compare("table8",y="grup",taulavariables = "variables_metplus.xls")
+formula_temp<-formula_compare("table8",y="grup",taulavariables = conductor_variables)
 temp_comp<-compareGroups::descrTable(formula_temp,data=dades %>% filter(.imp==0),show.p.overall = F,show.n = T,extra.labels =c(""))
 # Descriptivo datos imputados:
 temp_imp <-compareGroups::descrTable(formula_temp,data=dades %>% filter(.imp>0),show.p.overall = F,show.n = T,extra.labels =c(""))
 cbind("Complete case Analysis" = temp_comp, "Imputation cases analysis (m=10)" = temp_imp)
 
+
+```
+
+
 # COMPARATIVA
+
+```{r}
 llista_outcomes<-extreure.variables("table8",conductor_variables)
 
 taula_adhrecia_GRUP<-llista_outcomes %>% purrr::map_df(
-    ~extreure_resum_outcomes_imputation(dades,outcome=.x,grups="grup",v.ajust=vector_ajust)) %>% 
+    ~extreure_resum_outcomes_imputation(dades,outcome=.x,grups="grup",v.ajust=vector_ajust,level_conf = level_conf)) %>% 
   filter(categoria!="(Intercept)") %>% select(-mean)
+
+```
 
 
 # 15. SUSPENSIONS/DROPOUTS  (RESULTADOS 5) --------------------
 #
 # Analisis dades completes
+
+```{r}
 
 dades_completes<-dades %>% filter(.imp==0)
 
@@ -668,12 +877,24 @@ taula_percentatge_stops<-broom::tidy(cfit) %>% filter(time==180) %>%
 taula_percentatge_stops
 
 
+```
+
+
+```{r}
+
 dades_completes$temps_fins_stop<-with(dades_completes,Surv(temps.STOP.FD,STOP.FD))
 
 descrTable(temps_fins_stop~grup,data=dades_completes,show.ratio = T)
 
+
+```
+
+
+
+
 # 16. Descriptivo de efectos adversos (Resultados 6) --------------
 
+```{r}
 
 # Generar events com a Surv i recodificar events com a 0 en només en dades completes  -----------------
 
@@ -697,6 +918,12 @@ generar_Surv<-function(dt,event){
   temp 
   }
 
+
+```
+
+## Events 
+
+```{r}
 # Extrect llista de camps 
 llista_events<-extreure.variables("dates_events",conductor_variables)
 llista_events<-semi_join(tibble(id=llista_events), tibble(id=names(dades)),by="id") %>% pull(id)
@@ -721,23 +948,126 @@ dades_completes<-factoritzar.NO.YES(dades_completes,"dates_events",conductor_var
 dades_completes<-etiquetar(dades_completes,conductor_variables)
 
 # Generar taula
-formula_temp<-formula_compare("table10",y="grup",taulavariables = conductor_variables)
-compareGroups::descrTable(formula_temp,data=dades_completes,show.p.overall = F,hide = T)
+# formula_temp<-formula_compare("table10",y="grup",taulavariables = conductor_variables)
+# compareGroups::descrTable(formula_temp,data=dades_completes,show.p.overall = F,hide = T)
 
-# Salvar temporal 
+# Salvar temporal
+save.image(here::here(dir_resultats,"temp4.Rdata"))
 
-save.image(here::here("resultats","temp4.Rdata"))
+```
 
-load(here::here("resultats","temp4.Rdata"))
+## Flow chart
+
+```{r}
+
+ 
+# load(here::here(dir_resultats,"temp4.Rdata"))
 
 flow_global2<-criteris_exclusio_diagrama(dades_prematch,taulavariables = conductor_variables,criteris = "excl2",
                                          etiquetes="excl2_lab",pob_lab = c("Population","N Final"),grups="grup",ordre = "exc_ordre")
-flow_global2
+
+# flow_global2
+
+
+```
+
+# Panels plot d'efectes principals (3)
+
+## Outcomes principals (3 ForestPlot) 2 a 2
+
+```{r, warning=FALSE,message=FALSE}
+# Outcomes principals calcular effect size (Standardized diference)
+llista_outcomes <- extreure.variables("outcomes1",conductor_variables)
+
+
+# 1. ISGLT2 vs IDPP4
+dt_temp<-taula_estimacions_GRUP
+
+# Preparar taula filtrant per grup i seleccionar camps
+dt_temp<-dt_temp %>% filter(categoria=="grupISGLT2") %>% 
+  transmute(datos,type,outcome,estimate=Std_Coefficient,Linf=CIStd_low,Lsup=CIStd_high)
+
+# Cambiar etiquetes outcomes i tipo d'anàlisis 
+dt_temp<-etiquetar_taula(dt_temp,camp="outcome",taulavariables = conductor_variables)
+dt_temp<-etiquetar_taula(dt_temp,camp="datos",taulavariables = conductor_variables)
+dt_temp<-etiquetar_taula(dt_temp,camp="type",taulavariables = conductor_variables)
+
+# Plotejar ISGLT2 vs IDPP4
+forest_ISGLT2vsIDPP4<-forest.plot.met(dt_temp,mean="estimate",lower="Linf",upper="Lsup", color=TRUE)+
+  ggtitle("DPP4i vs. SGLT-2i") +theme(plot.title = element_text(hjust = 0.5)) 
+
+
+# 2. SU vs IDPP4 (ref)
+dt_temp<-taula_estimacions_GRUP
+dt_temp<-dt_temp %>% filter(categoria=="grupSU") %>% 
+  transmute(datos,type,outcome,estimate=Std_Coefficient,Linf=CIStd_low,Lsup=CIStd_high)
+
+# Cambiar etiquetes outcomes i tipo d'anàlisis 
+dt_temp<-etiquetar_taula(dt_temp,camp="outcome",taulavariables = conductor_variables)
+dt_temp<-etiquetar_taula(dt_temp,camp="datos",taulavariables = conductor_variables)
+dt_temp<-etiquetar_taula(dt_temp,camp="type",taulavariables = conductor_variables)
+
+# Plotejar ISGLT2 vs IDPP4
+forest_SUvsIDPP4<-forest.plot.met(dt_temp,mean="estimate",lower="Linf",upper="Lsup", color=TRUE)+
+  ggtitle("DPP4i vs. SU") + theme(plot.title = element_text(hjust = 0.50)) 
+
+
+# 3. SU vs ISGLT2
+dt_temp<-taula_estimacions_GRUP_ref_ISGLT2
+# Preparar taula filtrant per grup i seleccionar camps
+dt_temp<-dt_temp %>% filter(categoria=="grup2SU") %>% 
+  transmute(datos,type,outcome,estimate=Std_Coefficient,Linf=CIStd_low,Lsup=CIStd_high)
+
+# Cambiar etiquetes outcomes i tipo d'anàlisis 
+dt_temp<-etiquetar_taula(dt_temp,camp="outcome",taulavariables = conductor_variables)
+dt_temp<-etiquetar_taula(dt_temp,camp="datos",taulavariables = conductor_variables)
+dt_temp<-etiquetar_taula(dt_temp,camp="type",taulavariables = conductor_variables)
+
+# Plotejar SU vs ISGLT2
+forest_SUvsISGLT2<- forest.plot.met(dt_temp,mean="estimate",lower="Linf",upper="Lsup", color=TRUE)+ ggtitle("SGLT-2i vs. SU") +theme(plot.title = element_text(hjust = 0.5)) 
+
+
+
+
+```
+
+## Combinar-ho amb un Panel plot
+
+```{r}
+
+## Combinar-ho amb un Panel plot
+# library(gridExtra)
+# library(patchwork)
+# 
+# forest_SUvsIDPP4 <-forest_SUvsIDPP4 +  theme(axis.title.y = element_blank(), axis.text.y = element_blank(), axis.ticks.y = element_blank())
+# forest_SUvsISGLT2 <-forest_SUvsISGLT2 +  theme(axis.title.y = element_blank(), axis.text.y = element_blank(), axis.ticks.y = element_blank())
+# 
+# combined <- forest_ISGLT2vsIDPP4 + forest_SUvsIDPP4 + forest_SUvsISGLT2 & theme(legend.position = "bottom")
+# 
+# forest_plot_Panel<-
+#   combined + plot_layout(guides = "collect")+
+#   plot_annotation(title = "Forest plot of Standardised differences between groups by outcome",theme = theme(plot.title = element_text(hjust = 0.5))) + plot_layout(nrow = 1) 
+# 
+# 
+# forest_plot_Panel+labs(caption="Magnitude of effect size by Cohen's f: Small: <0.10; Medium: 0.25; Large: >0.4")
+
+
+```
 
 
 # 17 Salvar objectes ----------
 # output_Rdata<-"Output_metplus.RData"
-save(dades,dades_completes,flow_global,flow_global2,taula1,taula1.2,taulaPS, plot_ISGLT2_IDPP41,plot_ISGLT2_SU,
+
+```{r}
+
+save(dades,dades_completes,flow_global,flow_global2,taula1,taula1.2,taulaPS, 
+     
+     plot_ISGLT2_IDPP41,
+     plot_ISGLT2_SU,
+     
+     forest_ISGLT2vsIDPP4,
+     forest_SUvsIDPP4,
+     forest_SUvsISGLT2,
      
      taula_estimacions_GRUP_ref_ISGLT2,
      taula_estimacions_GRUP,
@@ -759,9 +1089,9 @@ save(dades,dades_completes,flow_global,flow_global2,taula1,taula1.2,taulaPS, plo
      
      taula_adhrecia_GRUP,
      
-     file=here::here("resultats",output_Rdata))
+     file=here::here(dir_resultats,output))
 
 
-
+```
 
 

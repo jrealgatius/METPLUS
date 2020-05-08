@@ -8,8 +8,10 @@ output:
   pdf_document: default
   word_document: default
 params: 
-  arxiu_Rdata: "Output_metplusITT.RData"
   analisis: "Intention to treat (ITT)"
+  mostra: "test" # "total" / "test"
+  analisis_OT: no
+  
 ---
 
 
@@ -36,11 +38,13 @@ library(ggplot2)
 link_source<-paste0("https://github.com/jrealgatius/Stat_codis/blob/master/funcions_propies.R","?raw=T")
 devtools::source_url(link_source)
 
+source(here::here("codi","global_metplus.R"))
+
+if (params$mostra=="test") dir_resultats<-"resultats/test" else dir_resultats<-"resultats"
 
 
-# Carrega Rdata
-load(here::here("resultats",params$arxiu_Rdata))
-
+# Canviar nom d'output 
+if (params$analisis_OT) output<-"Output_metplusOT.RData" else output<-"Output_metplusITT.RData"
 
 
 ```
@@ -48,6 +52,10 @@ load(here::here("resultats",params$arxiu_Rdata))
 
 
 ```{r filtres, include=F}
+
+# Carrega Rdata
+load(here::here(dir_resultats,output))
+
 
 dades<-etiquetar(dades,taulavariables = conductor_variables)
 
@@ -96,13 +104,19 @@ To compare the proportion of patients achieving the reduction in HbA1c values of
 
 ### Últimas actualizaciones 
 
+&check; Diferencias estandarizadas pre-post <br/>
+&check; Figuras pre post matching  <br/>
+&check; Effect sizes por cada outcome 2 a 2 <br/>
+&check; Forest plot <br/>
+&check; Recalcular IC98% <br/>
+&check; Analisis OT <br/>
+
+### Realizado
+
 &check; Generar nuevo agregador CVD  <br/>
 &check; Eliminado codigos T14 de agregador (musculoskeletal system adverse reactions)  <br/>
 &check; Diferencia de PAS entre grupos: SU, ISGLT2  <br/>
 &check; Cálculo de p's de diferencias en las reacciones adversas  <br/>
-
-### Realizado
-
 &check; Revisado código.  <br/>
 &check; Incluir tabaco/PAS/PAD en tablas pre matching.  <br/>
 &check; Añadir comparativa tomando categoria de referencia grupo ISGLT2  <br/>
@@ -138,12 +152,10 @@ To compare the proportion of patients achieving the reduction in HbA1c values of
 
 ### Pendiente
 
-* Analisi OT
 * Revisión y depuración de errores 
 * Edición de tablas 
-* Recodificaciones y cálculos
 * Validación clínica de resultados 
-* Redacción de informe y artículo
+* Terminar artículo
 ...
 
 
@@ -173,6 +185,34 @@ export2md(taulaPS, caption = paste0("Table 1: Sociodemographic variables post ma
 
 ```
 
+## Covariate Balance
+
+```{r, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
+
+library(gridExtra)
+library(patchwork)
+
+# plot_Covariable<-gridExtra::grid.arrange(plot_ISGLT2_IDPP41, plot_ISGLT2_SU,
+#                        ncol = 2,nrow=1,
+#                        top=textGrob("Covariate Balance"),widths=c(3.65,2.75))
+
+plot_ISGLT2_SU <-plot_ISGLT2_SU +  theme(axis.title.y = element_blank(), axis.text.y = element_blank(), axis.ticks.y = element_blank())
+
+combined <- plot_ISGLT2_IDPP41 + plot_ISGLT2_SU & theme(legend.position = "bottom")
+Covariable_Balance<-
+  combined + plot_layout(guides = "collect")+
+  plot_annotation(title = "Covariate Balance",theme = theme(plot.title = element_text(hjust = 0.5))) + 
+  plot_layout(nrow = 1)
+
+Covariable_Balance
+
+ggsave(here::here(dir_resultats,"figure_covariate.tiff"),Covariable_Balance)
+ggsave(here::here(dir_resultats,"figure_covariate.png"),Covariable_Balance)
+
+
+```
+
+
 # Descriptive analysis 
 
 ```{r, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
@@ -195,6 +235,10 @@ descrTable(formula,dades_completes,show.p.overall = F,show.all = T,hide.no ="No"
 
 # Dades que falten de seguiment 
 descrTable(grup~situacio+temps_seguiment,dades_completes,method = 4,show.p.overall = F,show.all = T,hide.no ="No",show.n = T,extra.labels = c("","","")) %>% 
+  export2md(caption = "Seguimiento de pacientes by group")
+
+# Dades que falten de seguiment 
+descrTable(grup~temps_seguiment,dades_completes,method = 1,show.p.overall = F,show.all = T,hide.no ="No",show.n = T,extra.labels = c("","","")) %>% 
   export2md(caption = "Seguimiento de pacientes by group")
 
 
@@ -268,6 +312,41 @@ taula_estimacions_GRUP_ref_ISGLT2 %>% kable(digits = 3, caption = "Estimaciones 
 ```
 
 
+## Diferencias estandarizadas entre grupos 2 a 2 
+
+### Effect Size (IC95%)
+
+```{r, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge",fig.height=10,fig.width=14}
+
+# Combinar-ho amb un Panel plot
+
+forest_SUvsIDPP4
+
+forest_SUvsISGLT2
+
+forest_ISGLT2vsIDPP4
+
+forest_SUvsIDPP4 <-forest_SUvsIDPP4 +  theme(axis.title.y = element_blank(), axis.text.y = element_blank(), axis.ticks.y = element_blank())
+forest_SUvsISGLT2 <-forest_SUvsISGLT2 +  theme(axis.title.y = element_blank(), axis.text.y = element_blank(), axis.ticks.y = element_blank())
+
+combined <- forest_ISGLT2vsIDPP4 + forest_SUvsIDPP4 + forest_SUvsISGLT2 & theme(legend.position = "bottom")
+
+forest_plot_Panel<-
+  combined + plot_layout(guides = "collect")+
+  plot_annotation(title = "Forest plot of Standardised differences between groups by outcome",theme = theme(plot.title = element_text(hjust = 0.5))) + plot_layout(nrow = 1) 
+
+
+forest_plot_Panel<-forest_plot_Panel+labs(caption="Magnitude of effect size by Cohen's f: Small: <0.10; Medium: 0.25; Large: >0.4")
+
+forest_plot_Panel
+
+ggsave(here::here(dir_resultats,"figure_ForestPlot.tiff"),forest_plot_Panel,width = 14,height = 10)
+ggsave(here::here(dir_resultats,"figure_ForestPlot.png"),forest_plot_Panel,width = 14,height = 10)
+
+
+```
+
+
 
 # Secondary objectives
 
@@ -275,7 +354,8 @@ taula_estimacions_GRUP_ref_ISGLT2 %>% kable(digits = 3, caption = "Estimaciones 
 
 ## Resultado 1.2. Descriptivo  
 
-Reducción media 
+> Reducción media 
+
 ```{r outcomes_secundaris, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
 
 # Outcomes continus 
@@ -347,7 +427,6 @@ print("")
 taula_estimacions2_ISGLT2 %>% kable(digits = 3,caption = "Estimaciones del grupo ISGLT2 en relación al resto ") %>% kableExtra::kable_styling()
 
 ```
-
 
 
 ## Resultado 3. (Outcomes secundarios)
