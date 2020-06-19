@@ -1,8 +1,8 @@
 ---
 params:
-  analisis_OT: no
+  analisis_OT: TRUE
   gap_dies: 92
-  mostra: "test" # global
+  mostra: "test" # global # "test"
 ---
 
 # FASE 1: LECTURA

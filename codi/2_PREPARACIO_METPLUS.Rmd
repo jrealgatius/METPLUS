@@ -1,7 +1,7 @@
 ---
 params:
-  analisis_OT: no
-  mostra: test
+  analisis_OT: TRUE
+  mostra: "global" # "global" "test"
   nivell_conf: 0.98
 ---
 
@@ -46,7 +46,7 @@ if (params$mostra=="test") {
 if (params$analisis_OT) arxiudades<-"BD_METPLUS_OT.rds" else arxiudades<-"BD_METPLUS_ITT.rds"
 
 # Canviar nom d'output 
-if (params$analisis_OT) output<-"Output_metplusOT.RData" else output<-"Output_metplusITT.RData"
+if (params$analisis_OT) output<-"Output_metplusOT.Rdata" else output<-"Output_metplusITT.Rdata"
 
 
 
@@ -243,7 +243,7 @@ dadesmatching<-dadesmatching %>% filter(ps1==1 | grup=="SU")
 formula<-formula_compare(x="match",y="grup",taulavariables = conductor_variables)
 taula2<-descrTable(formula,data=dadesmatching,show.all = T,show.n = T)
 
-taula2
+# taula2
 
 # Matching a subset 1 (ISGLT2+vs SU)
 dades_sub1<-dadesmatching %>% select(-ps1) %>% filter(grup=="SU" | grup=="ISGLT2")
@@ -380,8 +380,9 @@ save.image(here::here(dir_resultats,"temp.Rdata"))
 dades_prematch<-dades
 
 dades<-dades %>% filter(ps==1) %>% as_tibble()
-formula<-formula_compare(x="match",y="grup",taulavariables = conductor_variables)
-descrTable(formula,data=temp,show.all = T,show.n = T)
+
+# formula<-formula_compare(x="match",y="grup",taulavariables = conductor_variables)
+# descrTable(formula,data=temp,show.all = T,show.n = T)
 
 
 ```
@@ -569,7 +570,7 @@ dades<-dades %>% mutate(
   temps.STOP.FD>=730 & temps_seguiment>=730 ~"+24m",
   TRUE~NA_character_))
 
-descrTable(grup~STOP24m.FD,dades)
+# descrTable(grup~STOP24m.FD,dades)
 # Stop 12m (Només d'aquells amb seguiment mínim 12 mesos)
 dades<-dades %>% mutate(
   STOP12m.FD=case_when(
@@ -577,7 +578,7 @@ dades<-dades %>% mutate(
     temps.STOP.FD>=365 & temps_seguiment>=365 ~"+12meses",
     TRUE~NA_character_))
 
-descrTable(grup~STOP12m.FD,dades)
+# descrTable(grup~STOP12m.FD,dades)
 
 # Stop 6m (Només d'aquells amb seguiment mínim 6 mesos)
 dades<-dades %>% mutate(
@@ -664,12 +665,12 @@ dades<-dades %>% mutate(grup2=stats::relevel(grup,ref="ISGLT2"))
 
 # 11. Resultados 1  -----------------
 
-# 11.1 DESCRIPTIU outcomes dades completes vs dades imputades
-formula_temp<-formula_compare("outcomes1",y="grup",taulavariables = conductor_variables)
-temp_comp<-compareGroups::descrTable(formula_temp,data=dades %>% filter(.imp==0),show.p.overall = F,show.n = T,extra.labels =c(""))
-# Descriptivo datos imputados:
-temp_imp <-compareGroups::descrTable(formula_temp,data=dades %>% filter(.imp>0),show.p.overall = F,show.n = T,extra.labels =c(""))
-cbind("Complete case Analysis" = temp_comp, "Imputation cases analysis (m=10)" = temp_imp)
+# # 11.1 DESCRIPTIU outcomes dades completes vs dades imputades
+# formula_temp<-formula_compare("outcomes1",y="grup",taulavariables = conductor_variables)
+# temp_comp<-compareGroups::descrTable(formula_temp,data=dades %>% filter(.imp==0),show.p.overall = F,show.n = T,extra.labels =c(""))
+# # Descriptivo datos imputados:
+# temp_imp <-compareGroups::descrTable(formula_temp,data=dades %>% filter(.imp>0),show.p.overall = F,show.n = T,extra.labels =c(""))
+# cbind("Complete case Analysis" = temp_comp, "Imputation cases analysis (m=10)" = temp_imp)
 
 
 ```
@@ -723,12 +724,12 @@ taula_estimacions_ISGLT2<-llista_outcomes %>% purrr::map_df(
 
 ```{r}
 
-# 1. DESCRIPTIVA
-formula_temp<-formula_compare("table6",y="grup",taulavariables = conductor_variables)
-temp_comp<-compareGroups::descrTable(formula_temp,data=dades %>% filter(.imp==0),show.p.overall = F,show.n = T,extra.labels =c(""))
-# Descriptivo datos imputados:
-temp_imp <-compareGroups::descrTable(formula_temp,data=dades %>% filter(.imp>0),show.p.overall = F,show.n = T,extra.labels =c(""))
-cbind("Complete case Analysis" = temp_comp, "Imputation cases analysis (m=10)" = temp_imp)
+# # 1. DESCRIPTIVA
+# formula_temp<-formula_compare("table6",y="grup",taulavariables = conductor_variables)
+# temp_comp<-compareGroups::descrTable(formula_temp,data=dades %>% filter(.imp==0),show.p.overall = F,show.n = T,extra.labels =c(""))
+# # Descriptivo datos imputados:
+# temp_imp <-compareGroups::descrTable(formula_temp,data=dades %>% filter(.imp>0),show.p.overall = F,show.n = T,extra.labels =c(""))
+# cbind("Complete case Analysis" = temp_comp, "Imputation cases analysis (m=10)" = temp_imp)
 
 
 ```
@@ -770,12 +771,12 @@ taula_estimacions2_ISGLT2<-llista_outcomes %>% purrr::map_df(
 ```{r}
 # 13 Comparativa outcomes secundaris PAS (Resultados 3)
 
-# 1. DESCRIPTIVA
-formula_temp<-formula_compare("table7",y="grup",taulavariables = conductor_variables)
-temp_comp<-compareGroups::descrTable(formula_temp,data=dades %>% filter(.imp==0),show.p.overall = F,show.n = T,extra.labels =c(""))
-# Descriptivo datos imputados:
-temp_imp <-compareGroups::descrTable(formula_temp,data=dades %>% filter(.imp>0),show.p.overall = F,show.n = T,extra.labels =c(""))
-cbind("Complete case Analysis" = temp_comp, "Imputation cases analysis (m=10)" = temp_imp)
+# # 1. DESCRIPTIVA
+# formula_temp<-formula_compare("table7",y="grup",taulavariables = conductor_variables)
+# temp_comp<-compareGroups::descrTable(formula_temp,data=dades %>% filter(.imp==0),show.p.overall = F,show.n = T,extra.labels =c(""))
+# # Descriptivo datos imputados:
+# temp_imp <-compareGroups::descrTable(formula_temp,data=dades %>% filter(.imp>0),show.p.overall = F,show.n = T,extra.labels =c(""))
+# cbind("Complete case Analysis" = temp_comp, "Imputation cases analysis (m=10)" = temp_imp)
 
 ```
 
@@ -814,23 +815,19 @@ taula_estimacions3_ISGLT2<-llista_outcomes %>% purrr::map_df(
 # 14 ADHERENCIA  Resultados 4 ------------------------
 
 ```{r}
-extreure.variables("table8",taulavariables = conductor_variables)
 
 # Recodifico amb missings (No funciona amb tres categories)
 dades<-dades %>% mutate(MPR.TX.cat=recode_factor(MPR.TX.cat,"Yes"="Yes","No"="No","NA" = NA_character_))
 # Canvio la categoria de referencia
 dades$MPR.TX.cat<-relevel(dades$MPR.TX.cat,"No")
 
-# DESCRIPTIVA
-formula<-formula_compare("table8",y="grup",taulavariables = conductor_variables)
-descrTable(formula,dades)
 
-formula_temp<-formula_compare("table8",y="grup",taulavariables = conductor_variables)
-temp_comp<-compareGroups::descrTable(formula_temp,data=dades %>% filter(.imp==0),show.p.overall = F,show.n = T,extra.labels =c(""))
-# Descriptivo datos imputados:
-temp_imp <-compareGroups::descrTable(formula_temp,data=dades %>% filter(.imp>0),show.p.overall = F,show.n = T,extra.labels =c(""))
-cbind("Complete case Analysis" = temp_comp, "Imputation cases analysis (m=10)" = temp_imp)
-
+# formula_temp<-formula_compare("table8",y="grup",taulavariables = conductor_variables)
+# temp_comp<-compareGroups::descrTable(formula_temp,data=dades %>% filter(.imp==0),show.p.overall = F,show.n = T,extra.labels =c(""))
+# # Descriptivo datos imputados:
+# temp_imp <-compareGroups::descrTable(formula_temp,data=dades %>% filter(.imp>0),show.p.overall = F,show.n = T,extra.labels =c(""))
+# cbind("Complete case Analysis" = temp_comp, "Imputation cases analysis (m=10)" = temp_imp)
+# 
 
 ```
 
@@ -977,55 +974,40 @@ flow_global2<-criteris_exclusio_diagrama(dades_prematch,taulavariables = conduct
 
 ```{r, warning=FALSE,message=FALSE}
 # Outcomes principals calcular effect size (Standardized diference)
-llista_outcomes <- extreure.variables("outcomes1",conductor_variables)
+# Separar outcomes primaries de secundaries
+llista_outcomes <- extreure.variables("outcomes1",conductor_variables) %>% tibble(outcome=.)
+llista_out2 <- extreure.variables("outcomes2",conductor_variables) %>% tibble(outcome=.)
+llista_out1 <- extreure.variables("outcomes1",conductor_variables) %>% tibble(outcome=.) %>% anti_join(llista_out2)
 
-
-# 1. ISGLT2 vs IDPP4
-dt_temp<-taula_estimacions_GRUP
-
-# Preparar taula filtrant per grup i seleccionar camps
-dt_temp<-dt_temp %>% filter(categoria=="grupISGLT2") %>% 
-  transmute(datos,type,outcome,estimate=Std_Coefficient,Linf=CIStd_low,Lsup=CIStd_high)
-
-# Cambiar etiquetes outcomes i tipo d'anàlisis 
-dt_temp<-etiquetar_taula(dt_temp,camp="outcome",taulavariables = conductor_variables)
-dt_temp<-etiquetar_taula(dt_temp,camp="datos",taulavariables = conductor_variables)
-dt_temp<-etiquetar_taula(dt_temp,camp="type",taulavariables = conductor_variables)
-
+# 1. ISGLT2 vs IDPP4 (ref)
 # Plotejar ISGLT2 vs IDPP4
-forest_ISGLT2vsIDPP4<-forest.plot.met(dt_temp,mean="estimate",lower="Linf",upper="Lsup", color=TRUE)+
-  ggtitle("DPP4i vs. SGLT-2i") +theme(plot.title = element_text(hjust = 0.5)) 
 
-
+forest_ISGLT2vsIDPP4<-forest_MET(taula_estimacions_GRUP,"grupISGLT2",titul ="DPP4i vs. SGLT-2i",color=TRUE)
 # 2. SU vs IDPP4 (ref)
-dt_temp<-taula_estimacions_GRUP
-dt_temp<-dt_temp %>% filter(categoria=="grupSU") %>% 
-  transmute(datos,type,outcome,estimate=Std_Coefficient,Linf=CIStd_low,Lsup=CIStd_high)
+forest_SUvsIDPP4<-forest_MET(taula_estimacions_GRUP,"grupSU",titul = "DPP4i vs. SU", color=TRUE)
 
-# Cambiar etiquetes outcomes i tipo d'anàlisis 
-dt_temp<-etiquetar_taula(dt_temp,camp="outcome",taulavariables = conductor_variables)
-dt_temp<-etiquetar_taula(dt_temp,camp="datos",taulavariables = conductor_variables)
-dt_temp<-etiquetar_taula(dt_temp,camp="type",taulavariables = conductor_variables)
+# 3. SU vs ISGLT2 (ref)
+forest_SUvsISGLT2<-forest_MET(taula_estimacions_GRUP_ref_ISGLT2,"grup2SU",titul="SGLT-2i vs. SU", color=TRUE)
+
+# Fer el mateix separant primaris de secundaris
+
+# Primaries
 
 # Plotejar ISGLT2 vs IDPP4
-forest_SUvsIDPP4<-forest.plot.met(dt_temp,mean="estimate",lower="Linf",upper="Lsup", color=TRUE)+
-  ggtitle("DPP4i vs. SU") + theme(plot.title = element_text(hjust = 0.50)) 
+forest_ISGLT2vsIDPP4_1<-forest_MET(taula_estimacions_GRUP,"grupISGLT2",titul ="DPP4i vs. SGLT-2i",color=TRUE,llista_out1)
+# 2. SU vs IDPP4 (ref)
+forest_SUvsIDPP4_1<-forest_MET(taula_estimacions_GRUP,"grupSU",titul = "DPP4i vs. SU", color=TRUE,llista_out1)
+# 3. SU vs ISGLT2 (ref)
+forest_SUvsISGLT2_1<-forest_MET(taula_estimacions_GRUP_ref_ISGLT2,"grup2SU",titul="SGLT-2i vs. SU", color=TRUE,llista_out1)
 
+# Secundaries 
 
-# 3. SU vs ISGLT2
-dt_temp<-taula_estimacions_GRUP_ref_ISGLT2
-# Preparar taula filtrant per grup i seleccionar camps
-dt_temp<-dt_temp %>% filter(categoria=="grup2SU") %>% 
-  transmute(datos,type,outcome,estimate=Std_Coefficient,Linf=CIStd_low,Lsup=CIStd_high)
-
-# Cambiar etiquetes outcomes i tipo d'anàlisis 
-dt_temp<-etiquetar_taula(dt_temp,camp="outcome",taulavariables = conductor_variables)
-dt_temp<-etiquetar_taula(dt_temp,camp="datos",taulavariables = conductor_variables)
-dt_temp<-etiquetar_taula(dt_temp,camp="type",taulavariables = conductor_variables)
-
-# Plotejar SU vs ISGLT2
-forest_SUvsISGLT2<- forest.plot.met(dt_temp,mean="estimate",lower="Linf",upper="Lsup", color=TRUE)+ ggtitle("SGLT-2i vs. SU") +theme(plot.title = element_text(hjust = 0.5)) 
-
+# Plotejar ISGLT2 vs IDPP4
+forest_ISGLT2vsIDPP4_2<-forest_MET(taula_estimacions_GRUP,"grupISGLT2",titul ="DPP4i vs. SGLT-2i",color=TRUE,llista_out2)
+# 2. SU vs IDPP4 (ref)
+forest_SUvsIDPP4_2<-forest_MET(taula_estimacions_GRUP,"grupSU",titul = "DPP4i vs. SU", color=TRUE,llista_out2)
+# 3. SU vs ISGLT2 (ref)
+forest_SUvsISGLT2_2<-forest_MET(taula_estimacions_GRUP_ref_ISGLT2,"grup2SU",titul="SGLT-2i vs. SU", color=TRUE,llista_out2)
 
 
 
@@ -1060,15 +1042,11 @@ forest_SUvsISGLT2<- forest.plot.met(dt_temp,mean="estimate",lower="Linf",upper="
 
 ```{r}
 
+
 save(dades,dades_completes,flow_global,flow_global2,taula1,taula1.2,taulaPS, 
      
      plot_ISGLT2_IDPP41,
      plot_ISGLT2_SU,
-     
-     forest_ISGLT2vsIDPP4,
-     forest_SUvsIDPP4,
-     forest_SUvsISGLT2,
-     
      taula_estimacions_GRUP_ref_ISGLT2,
      taula_estimacions_GRUP,
      taula_estimacions_IDPP4,

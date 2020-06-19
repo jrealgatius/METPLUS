@@ -1,16 +1,45 @@
 
-## Funcions customitzades pel met_plus ----
+## Funcions FOREST_PLOT customitzades pel met_plus ----
 
-forest.plot.met<-function(dadesmodel=dt_estimacions,mean="estimate",lower="Linf",upper="Lsup",label_X="OR (98% CI)",
+forest_MET<-function(dt_temp=taula_estimacions_GRUP,grupfarmac="grupISGLT2",titul="DPP4i vs. SGLT-2i",color=TRUE, llista_out=llista_outcomes){
+  
+  # dt_temp=taula_estimacions_GRUP
+  # grupfarmac="grupSU"
+  # titul="DPP4i  vs.  SU"
+  # color=TRUE
+  # llista_out=llista_outcomes
+  
+  dt_temp<-dt_temp %>% semi_join(llista_out)
+  
+  # Preparar taula filtrant per grup i seleccionar camps
+  dt_temp<-dt_temp %>% filter(categoria==grupfarmac) %>% 
+    transmute(datos,type,outcome,estimate=Std_Coefficient,Linf=CIStd_low,Lsup=CIStd_high)
+  
+  # Cambiar etiquetes outcomes i tipo d'anàlisis 
+  dt_temp<-etiquetar_taula(dt_temp,camp="outcome",taulavariables = conductor_variables)
+  dt_temp<-etiquetar_taula(dt_temp,camp="datos",taulavariables = conductor_variables)
+  dt_temp<-etiquetar_taula(dt_temp,camp="type",taulavariables = conductor_variables)
+  
+  # Ploteja
+  forest.plot.met(dt_temp,mean="estimate",lower="Linf",upper="Lsup", color=color)+
+    ggtitle(titul) +theme(plot.title = element_text(hjust = 0.5)) 
+  
+}
+
+
+forest.plot.met<-function(dadesmodel=dt_temp,mean="estimate",lower="Linf",upper="Lsup",label_X="Effect size (98% CI)",
                          intercept=0,
                          nivell="outcome", factor1="type",factor2="datos", color=TRUE) {
-  
   # dadesmodel=dt_temp
   # mean="estimate"
   # lower="Linf"
   # upper="Lsup"
   # label_X="Effect size (95%CI)"
   # color=TRUE
+  # intercept=0
+  # nivell="outcome"
+  # factor1="type"
+  # factor2="datos"
 
   # Generar data set 
   dadesmodel <- dadesmodel %>% select(valor=!!mean,Linf=!!lower,Lsup=!!upper,nivell=!!nivell, factor1=!!factor1,factor2=!!factor2)
@@ -45,24 +74,41 @@ forest.plot.met<-function(dadesmodel=dt_estimacions,mean="estimate",lower="Linf"
   taula_betas$Method<-factor(taula_betas$Method, levels = ordre_levels)
   
   fp <- ggplot(data=taula_betas,aes(x=id, y=valor, ymin=Linf, ymax=Lsup)) +
-    geom_pointrange(size=0.2) + 
+    geom_errorbar(size=0.2, width=0.5) +
     geom_hline(yintercept=intercept, lty=1) +  # add a dotted line at x=1 after flip
-    coord_flip() +  # flip coordinates (puts labels on y axis)
+    coord_flip(ylim=c(-0.8,0.6)) +  # flip coordinates (puts labels on y axis)
     xlab("Outcome") + ylab(label_X) +
-    scale_x_continuous(breaks=taula_betas %>% pull(id),labels=taula_betas %>% pull(etiqueta4))
-
-  fp<-fp + theme_minimal() + theme(axis.text.y = element_text(hjust = 0,vjust=0,size=10)) 
+    scale_x_continuous(breaks=taula_betas %>% pull(id),labels=taula_betas %>% pull(etiqueta4))+
+    theme_minimal() + theme(axis.text.y = element_text(hjust = 0,vjust=0,size=10)) 
   
   if (color) {fp<-fp + geom_point(aes(color=Method),size=3)} else 
     {fp<-fp + geom_point(aes(shape=Method),size=3)}
   
   # Add banda d'error
-  fp<-fp + geom_hline(yintercept = c(intercept+0.1,intercept-0.1),linetype=2)
+  fp <- fp +  annotate("rect", xmin = 0, xmax = Inf, ymin = intercept -0.1, ymax = intercept+ 0.1, fill="grey",alpha=0.3) + 
+    geom_rect(aes(xmin = 0, xmax = Inf, ymin = intercept -0.1, ymax = intercept+ 0.1,fill="* Small< |0.10|"),colour=NA,alpha=0.01) +
+     scale_fill_manual('Effect size band',values = 'grey', guide = guide_legend(override.aes = list(alpha = 0.6))) 
   
-  
-  fp + ylim(-0.6,0.6)
+  # limits i marques
+  fp + ylim(-0.8,0.6) + scale_y_continuous(breaks = seq(-0.8,0.6,0.2) %>% round(1))
 
   
 }
+
+
+## Funció per render analisis
+arguments_render<-function(analisis_OT=T,mostra_test=T) {
+  gc()
+  if (mostra_test) mostra<<-"test" else mostra<<-"global"
+  if (analisis_OT) {
+    tipoanalisis<<-"On Treatment"
+    nom<<-"OT"
+  } else {
+    tipoanalisis<<-"Intention to treat (ITT)"
+    nom="ITT"}
+  nom_output<<-paste0("OUTPUT_",mostra,"_",nom)
+  analisis_OT<<-analisis_OT
+  }
+
 
 

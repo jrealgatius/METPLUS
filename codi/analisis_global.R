@@ -1,25 +1,40 @@
 
+
+
 ####################################################  -----------------------------
-analisis_OT<-TRUE
-mostra_test=TRUE
+# analisis_OT<-TRUE
+# mostra_test=TRUE
 
-if (mostra_test) mostra="test" else mostra="global"
-if (analisis_OT) tipoanalisis="On Treatment" else tipoanalisis="Intention to treat (ITT)"
 
-## 1. Lectura 
+# 1. Lectura  ----------------
+rm(list = ls())
+source("codi/global_metplus.R")
+arguments_render(analisis_OT=F,mostra_test=F)
 
 rmarkdown::render(input="./codi/1_LECTURA_METPLUS.Rmd",
                   params = list(analisis_OT= analisis_OT,mostra=mostra))
 
-## 2. Preparació
+
+# 2. Preparació ---------------------
+rm(list = ls())
+gc()
+source("codi/global_metplus.R")
+arguments_render(analisis_OT=F,mostra_test=F)
 rmarkdown::render(input="./codi/2_PREPARACIO_METPLUS.Rmd",
                   params =  list(analisis_OT= analisis_OT,mostra=mostra))
 
-## 3. RESULTATS 
-rmarkdown::render(input="./codi/3_RESULTATS_METPLUS.Rmd",output_file="OUTPUT_test_OT",
+
+# 3. RESULTATS -------------------------
+rm(list = ls())
+gc()
+source("codi/global_metplus.R")
+arguments_render(analisis_OT=F,mostra_test=F)
+
+rmarkdown::render(input="./codi/3_RESULTATS_METPLUS.Rmd",output_file=nom_output,
                   params = list(
                     analisis_OT= analisis_OT,
                     mostra=mostra,
                     analisis=tipoanalisis))
 
 #################################################### ----------------------------
+

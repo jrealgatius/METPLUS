@@ -9,8 +9,8 @@ output:
   word_document: default
 params: 
   analisis: "Intention to treat (ITT)"
-  mostra: "test" # "total" / "test"
-  analisis_OT: no
+  mostra: "total" # "total" / "test"
+  analisis_OT: TRUE
   
 ---
 
@@ -44,7 +44,13 @@ if (params$mostra=="test") dir_resultats<-"resultats/test" else dir_resultats<-"
 
 
 # Canviar nom d'output 
-if (params$analisis_OT) output<-"Output_metplusOT.RData" else output<-"Output_metplusITT.RData"
+if (params$analisis_OT) output<-"Output_metplusOT.Rdata" else output<-"Output_metplusITT.Rdata"
+
+
+# directori_figures  
+if (params$analisis_OT) dir_fig<-"resultats/figures_OT" else dir_fig<-"resultats/figures_ITT"
+
+if (params$mostra=="test") dir_fig<-dir_resultats
 
 
 ```
@@ -206,9 +212,8 @@ Covariable_Balance<-
 
 Covariable_Balance
 
-ggsave(here::here(dir_resultats,"figure_covariate.tiff"),Covariable_Balance)
-ggsave(here::here(dir_resultats,"figure_covariate.png"),Covariable_Balance)
-
+ggsave(here::here(dir_fig,"figure_covariate.tiff"),Covariable_Balance)
+ggsave(here::here(dir_fig,"figure_covariate.png"),Covariable_Balance)
 
 ```
 
@@ -312,40 +317,159 @@ taula_estimacions_GRUP_ref_ISGLT2 %>% kable(digits = 3, caption = "Estimaciones 
 ```
 
 
-## Diferencias estandarizadas entre grupos 2 a 2 
+## Forest plot 
 
-### Effect Size (IC95%)
+### Diferencias estandarizadas entre grupos 2 a 2  Effect Size + IC99%
 
 ```{r, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge",fig.height=10,fig.width=14}
+# Extreure outcomes principals / secundaris
+llista_outcomes <- extreure.variables("outcomes1",conductor_variables) %>% tibble(outcome=.)
+llista_out2 <- extreure.variables("outcomes2",conductor_variables) %>% tibble(outcome=.)
+llista_out1 <- extreure.variables("outcomes1",conductor_variables) %>% tibble(outcome=.) %>% anti_join(llista_out2)
 
-# Combinar-ho amb un Panel plot
+
+# 1. ISGLT2 vs IDPP4 (ref)
+# Plotejar ISGLT2 vs IDPP4
+forest_ISGLT2vsIDPP4<-forest_MET(taula_estimacions_GRUP,"grupISGLT2",titul ="DPP-4i  vs.  SGLT-2i",color=FALSE)
+
+# 2. SU vs IDPP4 (ref)
+forest_SUvsIDPP4<-forest_MET(taula_estimacions_GRUP,"grupSU",titul = "DPP-4i  vs.  SU", color=FALSE)
+
+# 3. SU vs ISGLT2 (ref)
+forest_SUvsISGLT2<-forest_MET(taula_estimacions_GRUP_ref_ISGLT2,"grup2SU",titul="SGLT-2i  vs.  SU", color=FALSE)
 
 forest_SUvsIDPP4
-
 forest_SUvsISGLT2
-
 forest_ISGLT2vsIDPP4
 
-forest_SUvsIDPP4 <-forest_SUvsIDPP4 +  theme(axis.title.y = element_blank(), axis.text.y = element_blank(), axis.ticks.y = element_blank())
-forest_SUvsISGLT2 <-forest_SUvsISGLT2 +  theme(axis.title.y = element_blank(), axis.text.y = element_blank(), axis.ticks.y = element_blank())
+# Fer el mateix separant primaris de secundaris
+# Primaries
+# Plotejar ISGLT2 vs IDPP4
+forest_ISGLT2vsIDPP4_1<-forest_MET(taula_estimacions_GRUP,"grupISGLT2",titul ="DPP-4i  vs.  SGLT-2i",color=FALSE,llista_out1)
+# 2. SU vs IDPP4 (ref)
+forest_SUvsIDPP4_1<-forest_MET(taula_estimacions_GRUP,"grupSU",titul = "DPP-4i  vs.  SU", color=FALSE,llista_out1)
+# 3. SU vs ISGLT2 (ref)
+forest_SUvsISGLT2_1<-forest_MET(taula_estimacions_GRUP_ref_ISGLT2,"grup2SU",titul="SGLT-2i  vs.  SU", color=FALSE,llista_out1)
 
-combined <- forest_ISGLT2vsIDPP4 + forest_SUvsIDPP4 + forest_SUvsISGLT2 & theme(legend.position = "bottom")
-
-forest_plot_Panel<-
-  combined + plot_layout(guides = "collect")+
-  plot_annotation(title = "Forest plot of Standardised differences between groups by outcome",theme = theme(plot.title = element_text(hjust = 0.5))) + plot_layout(nrow = 1) 
-
-
-forest_plot_Panel<-forest_plot_Panel+labs(caption="Magnitude of effect size by Cohen's f: Small: <0.10; Medium: 0.25; Large: >0.4")
-
-forest_plot_Panel
-
-ggsave(here::here(dir_resultats,"figure_ForestPlot.tiff"),forest_plot_Panel,width = 14,height = 10)
-ggsave(here::here(dir_resultats,"figure_ForestPlot.png"),forest_plot_Panel,width = 14,height = 10)
+# Secundaries 
+# Plotejar ISGLT2 vs IDPP4
+forest_ISGLT2vsIDPP4_2<-forest_MET(taula_estimacions_GRUP,"grupISGLT2",titul ="DPP-4i vs. SGLT-2i",color=FALSE,llista_out2)
+# 2. SU vs IDPP4 (ref)
+forest_SUvsIDPP4_2<-forest_MET(taula_estimacions_GRUP,"grupSU",titul = "DPP-4i vs. SU", color=FALSE,llista_out2)
+# 3. SU vs ISGLT2 (ref)
+forest_SUvsISGLT2_2<-forest_MET(taula_estimacions_GRUP_ref_ISGLT2,"grup2SU",titul="SGLT-2i vs. SU", color=FALSE,llista_out2)
 
 
 ```
 
+
+```{r, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge",fig.height=10,fig.width=14}
+# Combinar-ho amb un Panel plot
+library(gridExtra)
+library(patchwork)
+
+forest_SUvsIDPP4 <-forest_SUvsIDPP4 +  theme(axis.title.y = element_blank(), axis.text.y = element_blank(), axis.ticks.y = element_blank())
+forest_SUvsISGLT2 <-forest_SUvsISGLT2 +  theme(axis.title.y = element_blank(), axis.text.y = element_blank(), axis.ticks.y = element_blank())
+
+# forest_ISGLT2vsIDPP4<-forest_ISGLT2vsIDPP4 +  theme(axis.title.y = element_blank(), axis.text.y = element_blank(), axis.ticks.y = element_blank())
+
+# Food note de Variables d'ajust
+vector_ajust<-extreure.variables("v.ajust",conductor_variables) %>% etiquetar_vector(taulavariables = conductor_variables)
+foodnote_vajust<-paste0(vector_ajust,collapse = ", ")
+
+# Colocar food note 
+forest_ISGLT2vsIDPP4<-
+  forest_ISGLT2vsIDPP4+
+  labs(caption=paste0("* Magnitude of effect size by Cohen's f: Small:<|0.10|; Medium:|0.10-0.25|; Large: >|0.4| \n Adjusted by ",foodnote_vajust))+
+   theme(plot.caption = element_text(hjust = 0))
+
+combined <- forest_ISGLT2vsIDPP4 + forest_SUvsIDPP4 + forest_SUvsISGLT2 & theme(legend.position = "bottom")
+
+# forest_plot_Panel<-
+#   combined + plot_layout(guides = "collect")+
+#   plot_annotation(title = "Forest plot of Standardised differences between groups by outcome",theme = theme(plot.title = element_text(hjust = 0.5))) + plot_layout(nrow = 1) 
+
+# Elimino titul
+forest_plot_Panel<-combined + plot_layout(guides = "collect")
+
+ggsave(here::here(dir_fig,"figure_ForestPlot.tiff"),forest_plot_Panel,width = 14,height = 10,dpi = 150)
+ggsave(here::here(dir_fig,"figure_ForestPlot.png"),forest_plot_Panel,width = 14,height = 10)
+
+forest_plot_Panel
+
+
+```
+
+
+## Forest plot només estimacions ajustades
+
+
+```{r, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge",fig.height=10,fig.width=14}
+
+# Filtro només estimacions crues
+taula_estimacions_GRUP<-taula_estimacions_GRUP %>% filter(type=="Adjusted")
+taula_estimacions_GRUP_ref_ISGLT2<-taula_estimacions_GRUP_ref_ISGLT2 %>% filter(type=="Adjusted")
+
+# 1. ISGLT2 vs IDPP4 (ref)
+# Plotejar ISGLT2 vs IDPP4
+forest_ISGLT2vsIDPP4<-forest_MET(taula_estimacions_GRUP,"grupISGLT2",titul ="DPP-4i  vs.  SGLT-2i",color=FALSE)
+
+# 2. SU vs IDPP4 (ref)
+forest_SUvsIDPP4<-forest_MET(taula_estimacions_GRUP,"grupSU",titul = "DPP-4i  vs.  SU", color=FALSE)
+
+# 3. SU vs ISGLT2 (ref)
+forest_SUvsISGLT2<-forest_MET(taula_estimacions_GRUP_ref_ISGLT2,"grup2SU",titul="SGLT-2i  vs.  SU", color=FALSE)
+
+# Eliminar eix y
+forest_SUvsIDPP4 <-forest_SUvsIDPP4 +  theme(axis.title.y = element_blank(), axis.text.y = element_blank(), axis.ticks.y = element_blank())
+forest_SUvsISGLT2 <-forest_SUvsISGLT2 +  theme(axis.title.y = element_blank(), axis.text.y = element_blank(), axis.ticks.y = element_blank())
+
+# Food note de Variables d'ajust
+vector_ajust<-extreure.variables("v.ajust",conductor_variables) %>% etiquetar_vector(taulavariables = conductor_variables)
+foodnote_vajust<-paste0(vector_ajust,collapse = ", ")
+
+# Colocar food note 
+forest_ISGLT2vsIDPP4<-
+  forest_ISGLT2vsIDPP4+
+  labs(caption=paste0("* Magnitude of effect size by Cohen's f: Small:<|0.10|; Medium:|0.10-0.25|; Large: >|0.4| \n Adjusted by ",foodnote_vajust))+
+   theme(plot.caption = element_text(hjust = 0))
+
+combined <- forest_ISGLT2vsIDPP4 + forest_SUvsIDPP4 + forest_SUvsISGLT2 & theme(legend.position = "bottom")
+
+forest_plot_Panel<-  combined  +  plot_layout(guides = "collect") 
+
+forest_plot_Panel
+
+
+ggsave(here::here(dir_fig,"figure_ForestPlot_Adj.tiff"),forest_plot_Panel,width = 14,height = 10,dpi = 150)
+ggsave(here::here(dir_fig,"figure_ForestPlot_Adj.png"),forest_plot_Panel,width = 14,height = 10)
+
+
+```
+
+
+
+## Forest separant primaries de secundaries
+
+```{r,message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge",fig.height=10,fig.width=14}
+
+# Combinar-ho amb un Panel plot
+
+forest_SUvsIDPP4_1
+
+forest_SUvsISGLT2_1
+
+forest_ISGLT2vsIDPP4_1
+
+
+forest_SUvsIDPP4_2
+
+forest_SUvsISGLT2_2
+
+forest_ISGLT2vsIDPP4_2
+
+
+```
 
 
 # Secondary objectives
