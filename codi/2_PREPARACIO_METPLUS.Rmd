@@ -1,8 +1,8 @@
 ---
 params:
   analisis_OT: TRUE
-  mostra: "global" # "global" "test"
-  nivell_conf: 0.98
+  mostra: "test" # "global" "test"
+  nivell_conf: 0.983
 ---
 
 #  FASE: Preparació      ---------------------
@@ -23,6 +23,7 @@ source(here::here("codi","global_metplus.R"))
 library(lubridate)
 library(dplyr)
 library(cobalt)
+
 conductor_variables<-here::here("variables_metplus.xls")
 
 # CAnviar directori d'entrada / sortida
@@ -175,7 +176,6 @@ dades<-recodificar(dades,taulavariables = conductor_variables,criteris = "recode
 dades<-recodificar(dades,taulavariables = conductor_variables,criteris = "recode_mis",missings = T)
 
 
-
 # Falta generació de quartils Pes
 dades<-dades %>% 
   mutate(PES.CAT.Q4=Hmisc::cut2(PESO.valor,g=4))
@@ -183,6 +183,8 @@ dades<-dades %>%
 # Generació de quINTILS anys_dm 
 dades<-dades %>% 
   mutate(anys_DM.Q5=Hmisc::cut2(anys_DM,g=5))
+
+
 
 ```
 
@@ -446,16 +448,30 @@ save.image(here::here(dir_resultats,"temp2.Rdata"))
 # 9. Calcular outcomes: (Reducció de HbA1c i Reducció de PES)  ---------------------
 # HBA1C.valor12m HBA1C.valor324m HBA1C.valor24m
 
+> Recodes i canvis d'escala de HBA1C post imputation
+
 ```{r}
+
+# Calcul de Variable nueva IFCC HbA1c (nmmol/mol) = (10.93*HB1AC)-23.50
+dades<-
+  dades %>% mutate(HBA1C_IFCC=(HBA1C.valor*10.93)-23.50,
+                 HBA1C_IFCC6m=(HBA1C.valor6m*10.93)-23.50,
+                 HBA1C_IFCC12m=(HBA1C.valor12m*10.93)-23.50,
+                 HBA1C_IFCC24m=(HBA1C.valor24m*10.93)-23.50,
+                 HBA1C_IFCC324m=(HBA1C.valor324m*10.93)-23.50)
+
 
 dades<-dades %>% mutate (
   HBA1C.dif324m=HBA1C.valor-HBA1C.valor324m,
-  HBA1C.dif324m.cat=if_else(HBA1C.dif324m>0.5,1,0),                
+  HBA1C.dif324m.cat=if_else(HBA1C.dif324m>=0.5,1,0),                
   PESO.dif324m=PESO.valor-PESO.valor324m,
-  PESO.dif324m.cat=if_else(PESO.dif324m/PESO.valor>0.03,1,0),
+  PESO.dif324m.cat=if_else(PESO.dif324m/PESO.valor>=0.03,1,0),
   PESHB.dif324m.cat=case_when(is.na(HBA1C.dif324m.cat) | is.na(PESO.dif324m.cat)~NA_real_,
                               HBA1C.dif324m.cat==0 | PESO.dif324m.cat==0~0,
-                              HBA1C.dif324m.cat==1 & PESO.dif324m.cat==1~1)) 
+                              HBA1C.dif324m.cat==1 & PESO.dif324m.cat==1~1),
+  HBA1C_IFCC.dif324m=HBA1C_IFCC-HBA1C_IFCC324m,
+  HBA1C.valor324m_7cat=if_else(HBA1C.valor324m<7,1,0)) 
+
 
 # 9.1. Calcular reduccions de PAS COLHDL.valor COLLDL.valor COLTOT.valor TG.valor
 dades<-dades %>% mutate (
@@ -658,6 +674,7 @@ save.image(here::here(dir_resultats,"temp3.Rdata"))
 # Relevel grup
 dades<-dades %>% mutate(grup2=stats::relevel(grup,ref="ISGLT2"))
 
+
 ```
 
 
@@ -688,6 +705,7 @@ vector_ajust<-extreure.variables("v.ajust",conductor_variables)
 
 # Mesures d'asociació per cada outcome 
 llista_outcomes<-extreure.variables("outcomes1",taulavariables = conductor_variables)
+
 
 taula_estimacions_GRUP<-llista_outcomes %>% purrr::map_df(
   ~extreure_resum_outcomes_imputation(dades,outcome=.x,grups="grup",v.ajust=vector_ajust,level_conf = level_conf)) %>% 
@@ -835,11 +853,19 @@ dades$MPR.TX.cat<-relevel(dades$MPR.TX.cat,"No")
 # COMPARATIVA
 
 ```{r}
-llista_outcomes<-extreure.variables("table8",conductor_variables)
+llista_outcomes<-extreure.variables("table8",conductor_variables) 
 
+# Remove alguns outcomnes
+llista_outcomes<-llista_outcomes[!llista_outcomes %in% c("tempsTX.GRUP","temps.STOP.FD")]
+
+# elimino de la llista outcomes alguns
 taula_adhrecia_GRUP<-llista_outcomes %>% purrr::map_df(
-    ~extreure_resum_outcomes_imputation(dades,outcome=.x,grups="grup",v.ajust=vector_ajust,level_conf = level_conf)) %>% 
+    ~extreure_resum_outcomes_imputation(dades,outcome=.x,grups="grup2",v.ajust=vector_ajust,level_conf = level_conf)) %>% 
   filter(categoria!="(Intercept)") %>% select(-mean)
+
+
+
+
 
 ```
 

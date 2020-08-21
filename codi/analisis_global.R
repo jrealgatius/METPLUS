@@ -1,6 +1,5 @@
 
 
-
 ####################################################  -----------------------------
 # analisis_OT<-TRUE
 # mostra_test=TRUE
@@ -37,4 +36,31 @@ rmarkdown::render(input="./codi/3_RESULTATS_METPLUS.Rmd",output_file=nom_output,
                     analisis=tipoanalisis))
 
 #################################################### ----------------------------
+
+
+# 2. Preparació ---------------------
+rm(list = ls())
+gc()
+source("codi/global_metplus.R")
+arguments_render(analisis_OT=T,mostra_test=F)
+rmarkdown::render(input="./codi/2_PREPARACIO_METPLUS.Rmd",
+                  params =  list(analisis_OT= analisis_OT,mostra=mostra))
+
+
+# 3. RESULTATS -------------------------
+rm(list = ls())
+gc()
+source("codi/global_metplus.R")
+arguments_render(analisis_OT=T,mostra_test=F)
+
+rmarkdown::render(input="./codi/3_RESULTATS_METPLUS.Rmd",output_file=nom_output,
+                  params = list(
+                    analisis_OT= analisis_OT,
+                    mostra=mostra,
+                    analisis=tipoanalisis))
+
+#################################################### ----------------------------
+
+
+
 

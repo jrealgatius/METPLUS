@@ -9,7 +9,7 @@ output:
   word_document: default
 params: 
   analisis: "Intention to treat (ITT)"
-  mostra: "total" # "total" / "test"
+  mostra: "test" # "total" / "test"
   analisis_OT: TRUE
   
 ---
@@ -110,6 +110,20 @@ To compare the proportion of patients achieving the reduction in HbA1c values of
 
 ### Últimas actualizaciones 
 
+> Agost 2020
+
+&check; Generar 6 variables nuevas IFCC HbA1c (nmmol/mol) = (10.93*HB1AC)-23.50  <br/>
+&check; Arreglar punts de tall d'outcomes reduccions categoriques >= 3% Pes i >=0.5 glicada  <br/>
+&check; Generar nou outcome binari <7% HBA1C seguiment 3-24 mesos <br/>
+&check; Noves mesures d'associació nou outcome binari <br/>
+&check; Canvi de categoria de referencia ISGLT2 en adherencia <br/>
+&check; Afegida descriptiva de temps de dispensació / prescripció  <br/>
+&check; Actualitzar resultats OT i ITT  <br/>
+
+### Realizado
+
+> Juny 2020
+
 &check; Diferencias estandarizadas pre-post <br/>
 &check; Figuras pre post matching  <br/>
 &check; Effect sizes por cada outcome 2 a 2 <br/>
@@ -117,7 +131,7 @@ To compare the proportion of patients achieving the reduction in HbA1c values of
 &check; Recalcular IC98% <br/>
 &check; Analisis OT <br/>
 
-### Realizado
+>
 
 &check; Generar nuevo agregador CVD  <br/>
 &check; Eliminado codigos T14 de agregador (musculoskeletal system adverse reactions)  <br/>
@@ -620,6 +634,9 @@ cbind("Complete case Analysis" = temp_comp, "Imputation cases analysis (m=10)" =
 ### Resultado 4.1. Comparativa
 
 ```{r, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
+
+# Afegeixo etiqueta a outcome 
+taula_adhrecia_GRUP<-etiquetar_taula(taula_adhrecia_GRUP,camp="outcome",conductor_variables)
 
 # COMPARATIVA
 taula_adhrecia_GRUP %>% kable(digits = 3,caption = "Estimaciones del de cada grupo en relqación a IDPP4 y resto, crudas y ajustadas") %>% kableExtra::kable_styling()
