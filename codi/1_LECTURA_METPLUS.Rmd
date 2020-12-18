@@ -2,7 +2,7 @@
 params:
   analisis_OT: TRUE
   gap_dies: 92
-  mostra: "test" # global # "test"
+  mostra: "global" # global # "test"
 ---
 
 # FASE 1: LECTURA
@@ -190,6 +190,20 @@ farmacs_grups<- farmacs_grups %>%
 dt_grups<-farmacs_grups %>% select(idp,dtindex=data_index,FD.IDPP4,FD.iSGLT2,FD.SU,grup)
 dt_index<-dt_grups %>% select(idp,dtindex)
 
+# Capturar codi index ATC de data index (Primera)
+
+dt_codindex<-
+  select(filter(conductor_variables,!is.na(GRUP)),cod,agr,GRUP,des) %>% unique() %>% 
+  left_join(FX.FACTURATS_PRESCRITS,by="cod") %>% 
+  group_by(idp,GRUP) %>% 
+      arrange(dat) %>% slice(1L) %>% 
+  ungroup() %>% 
+  select(idp,cod_index=cod,grup_index=GRUP,fx_index=des) 
+
+# Salvar dt_codindex
+saveRDS(dt_codindex,here::here(dir_dades_prep,"dt_codindex.rds"))
+
+
 
 ```
 
@@ -227,10 +241,10 @@ farmacs_dt_sense_gaps<-FX.FACTURATS_PRESCRITS_GRUPS %>%
   map_df(~bind_rows(.),.id="GRUP")
 
 # Verificar solapamenta  n=10 pre-post  ------
-set.seed(169)
-MAP_ggplot_univariant(FX.FACTURATS_PRESCRITS_GRUPS %>% filter(GRUP=="SU"),datainicial = "dat",datafinal = "datafi",id="idp",Nmostra = 10)
-set.seed(169)
-MAP_ggplot_univariant(farmacs_dt_sense_gaps %>% filter(GRUP=="SU"),datainicial = "dat",datafinal = "datafi",id="idp",Nmostra = 10)
+# set.seed(169)
+# MAP_ggplot_univariant(FX.FACTURATS_PRESCRITS_GRUPS %>% filter(GRUP=="SU"),datainicial = "dat",datafinal = "datafi",id="idp",Nmostra = 10)
+# set.seed(169)
+# MAP_ggplot_univariant(farmacs_dt_sense_gaps %>% filter(GRUP=="SU"),datainicial = "dat",datafinal = "datafi",id="idp",Nmostra = 10)
 
 
 ```
@@ -514,6 +528,8 @@ saveRDS(BDTOTAL,fitxersortida)
 # Salvo historic de farmacs
 saveRDS (farmacs_dt_sense_gaps,here::here(dir_dades_prep,"historic_fd_sgaps.rds"))
 saveRDS(FX.FACTURATS_GRUPS,here::here(dir_dades_prep,"historic_fd.rds"))
+
+
 
 
 ```

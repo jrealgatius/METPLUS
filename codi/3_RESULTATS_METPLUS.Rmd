@@ -9,7 +9,7 @@ output:
   word_document: default
 params: 
   analisis: "Intention to treat (ITT)"
-  mostra: "test" # "total" / "test"
+  mostra: "total" # "total" / "test"
   analisis_OT: TRUE
   
 ---
@@ -62,8 +62,12 @@ if (params$mostra=="test") dir_fig<-dir_resultats
 # Carrega Rdata
 load(here::here(dir_resultats,output))
 
+dt_codindex<-readRDS(here::here("dades/preparades","dt_codindex.rds")) %>% 
+  semi_join(mutate(dades_completes,idp=as.character(idp)),by="idp")
 
 dades<-etiquetar(dades,taulavariables = conductor_variables)
+
+
 
 ```
 
@@ -110,6 +114,14 @@ To compare the proportion of patients achieving the reduction in HbA1c values of
 
 ### Últimas actualizaciones 
 
+> Novembre 2020
+
+&check; Frecuencia de fármaco índice por grupo (Resultado 8)  <br/>
+
+### Realizado
+
+&check; Añadir HbA1c,(mmol/mol),reduction, mean (SD)  <br/>
+
 > Agost 2020
 
 &check; Generar 6 variables nuevas IFCC HbA1c (nmmol/mol) = (10.93*HB1AC)-23.50  <br/>
@@ -119,8 +131,6 @@ To compare the proportion of patients achieving the reduction in HbA1c values of
 &check; Canvi de categoria de referencia ISGLT2 en adherencia <br/>
 &check; Afegida descriptiva de temps de dispensació / prescripció  <br/>
 &check; Actualitzar resultats OT i ITT  <br/>
-
-### Realizado
 
 > Juny 2020
 
@@ -272,10 +282,10 @@ To compare the proportion of patients achieving the reduction in HbA1c values of
 - Descriptivo (Complete case Analysis vs Imputation cases analysis (m=10))
 ```{r, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
 
-formula<-formula_compare(x="outcomes1",y="grup",taulavariables = conductor_variables)
 
 # 11.1 DESCRIPTIU outcomes dades completes vs dades imputades
-formula_temp<-formula_compare("outcomes1",y="grup",taulavariables = conductor_variables)
+formula_temp<-formula_compare("out1_ampliat",y="grup",taulavariables = conductor_variables)
+
 temp_comp<-compareGroups::descrTable(formula_temp,data=dades %>% filter(.imp==0),show.p.overall = F,show.n = T,extra.labels =c(""))
 # Descriptivo datos imputados:
 temp_imp <-compareGroups::descrTable(formula_temp,data=dades %>% filter(.imp>0),show.p.overall = F,show.n = T,extra.labels =c(""))
@@ -743,4 +753,23 @@ descrTable(formula,dades_completes,show.p.overall = T) %>%
 
 
 ```
+
+### Resultado 8.
+
+Frequencia de cada fármaco por grupo
+
+```{r, message=FALSE, warning=FALSE, include=T, echo=FALSE,size="huge"}
+
+# Capturar grupindex i filtrar 
+dt_codindex<-dt_codindex %>% mutate(grup=if_else(grup_index=="iSGLT2","ISGLT2",grup_index))
+
+dt_temp<-dades_completes %>% transmute(idp=as.character(idp),grup=as.character(grup2)) %>% 
+  left_join(dt_codindex, by=c("idp","grup"))
+
+# Taula 
+table1::table1(~cod_index+fx_index | grup,data=dt_temp)
+
+
+```
+
 

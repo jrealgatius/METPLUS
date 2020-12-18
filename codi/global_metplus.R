@@ -27,7 +27,7 @@ forest_MET<-function(dt_temp=taula_estimacions_GRUP,grupfarmac="grupISGLT2",titu
 }
 
 
-forest.plot.met<-function(dadesmodel=dt_temp,mean="estimate",lower="Linf",upper="Lsup",label_X="Effect size (98% CI)",
+forest.plot.met<-function(dadesmodel=dt_temp,mean="estimate",lower="Linf",upper="Lsup",label_X="Effect size (CI)",
                          intercept=0,
                          nivell="outcome", factor1="type",factor2="datos", color=TRUE) {
   # dadesmodel=dt_temp
